@@ -6,7 +6,7 @@ import os.path
 import shutil
 import numpy as np
 import collections
-import pprint # for debug
+from collections import OrderedDict
 
 OUTPUT_DIR = "output"
 TABLE_FILE_NAME = "board"
@@ -129,6 +129,7 @@ class cstgen:
         self.isInit_writeLog = True
         self.isInit_writeTbl = None
         self.isInit_writeFlow = None
+        self.lane_num = 1
 
     ##---------------------------------------------------------
     def writeLog(self, s):
@@ -483,58 +484,82 @@ class cstgen:
         self.writeLog(" === Port information for each switch === \n")
         for i in range(0, self.switch_num):
             self.writeLog(" SW {} : \n".format(self.topo_sws_uni[i]))
+            tablesetdict = OrderedDict()
+            tablesetdict["slots"] = slots
+            tablesetdict["ports"] = self.degree + 1
+            tablesetdict["outputs"] = self.lane_num # for multi-lane
+            tablesetdict["table"] = OrderedDict()
             self.writeTbl(self.topo_sws_uni[i], "{} {}\n".format(self.degree + 1, slots))
             self.writeTbl(self.topo_sws_uni[i], "0000\n")
 
-            slot_occupied = False
-            index = self.ports_p_sw * i + (self.switch_num - 1) + 2 * self.Host_Num
-            for s in range(0, slots):
-                if len(self.Crossing_Paths[index].routing_table) > 0:
-                    for j in range(0, len(self.Crossing_Paths[index].routing_table), 5):
-                        if self.Crossing_Paths[index].routing_table[j + 1] == s: 
-                            self.writeTbl(self.topo_sws_uni[i], "{} ".format(self.Crossing_Paths[index].routing_table[j]))
-                            slot_occupied = True
-                            self.writeLog("      Port {}".format(self.Crossing_Paths[index].routing_table[j]))
-                            self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                            self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                            self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
-                            self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
-                            self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
-                            self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
-                if not slot_occupied:
-                    self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
-                self.writeTbl(self.topo_sws_uni[i], "\n")
+            for lane_id in range(0, self.lane_num):
+                lane_str = "output{}".format(lane_id)
+                tablesetdict["table"][lane_str] = OrderedDict()
                 slot_occupied = False
-            
-            for n in range(1, self.degree + 1):
-                for op in range(0, (self.switch_num - 1) + 1):
-                    index = self.ports_p_sw * i + op
-                    out_port = self.Switch_Topo[index]
-                    if (out_port == n):
-                        self.writeTbl(self.topo_sws_uni[i], "{:04x}\n".format(out_port << 8))
-                        for s in range(0, slots):
-                            temp_ip = list()
-                            if len(self.Crossing_Paths[index].routing_table) > 0:
-                                for j in range(0, len(self.Crossing_Paths[index].routing_table), 5):
-                                    if self.Crossing_Paths[index].routing_table[j + 1] == s:
-                                        input_port = self.Crossing_Paths[index].routing_table[j]
-                                        if not (input_port in temp_ip):
-                                            self.writeTbl(self.topo_sws_uni[i], "{} ".format(input_port))
-                                            temp_ip.append(input_port)
-                                        
-                                        slot_occupied = True
-                                        self.writeLog("      Port {}".format(input_port))
-                                        self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                        self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                        self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
-                                        self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
-                                        self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
-                                        self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                index = self.ports_p_sw * i + (self.switch_num - 1) + 2 * self.Host_Num
+                
+                #port 0
+                tablesetdict["table"][lane_str]["port0"] = OrderedDict()
+                for s in range(0, slots):
+                    slot_str = "slot{}".format(s)
+                    if len(self.Crossing_Paths[index].routing_table) > 0:
+                        for j in range(0, len(self.Crossing_Paths[index].routing_table), 5):
+                            if self.Crossing_Paths[index].routing_table[j + 1] == s: 
+                                tablesetdict["table"][lane_str]["port0"][slot_str] = self.Crossing_Paths[index].routing_table[j]
+                                self.writeTbl(self.topo_sws_uni[i], "{} ".format(self.Crossing_Paths[index].routing_table[j]))
+                                slot_occupied = True
+                                self.writeLog("      Port {}".format(self.Crossing_Paths[index].routing_table[j]))
+                                self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
+                                self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
+                                self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
+                                self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                    if not slot_occupied:
+                        tablesetdict["table"][lane_str]["port0"][slot_str] = self.degree + 1
+                        self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
+                    self.writeTbl(self.topo_sws_uni[i], "\n")
+                    slot_occupied = False
 
-                            if not slot_occupied:
-                                self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
-                            self.writeTbl(self.topo_sws_uni[i], "\n")
-                            slot_occupied = False
+                for n in range(1, self.degree + 1):
+                    port_str = "port{}".format(n)
+                    tablesetdict["table"][lane_str][port_str] = OrderedDict()
+                    for op in range(0, (self.switch_num - 1) + 1):
+                        index = self.ports_p_sw * i + op
+                        out_port = self.Switch_Topo[index]
+                        if (out_port == n):
+                            self.writeTbl(self.topo_sws_uni[i], "{:04x}\n".format(out_port << 8))
+                            for s in range(0, slots):
+                                slot_str = "slot{}".format(s)
+                                temp_ip = list()
+                                if len(self.Crossing_Paths[index].routing_table) > 0:
+                                    for j in range(0, len(self.Crossing_Paths[index].routing_table), 5):
+                                        if self.Crossing_Paths[index].routing_table[j + 1] == s:
+                                            input_port = self.Crossing_Paths[index].routing_table[j]
+                                            if not (input_port in temp_ip):
+                                                self.writeTbl(self.topo_sws_uni[i], "{} ".format(input_port))
+                                                tablesetdict["table"][lane_str][port_str][slot_str] = input_port
+                                                temp_ip.append(input_port)
+
+                                            slot_occupied = True
+                                            self.writeLog("      Port {}".format(input_port))
+                                            self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                            self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                            self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
+                                            self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
+                                            self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
+                                            self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+
+                                if not slot_occupied:
+                                    self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
+                                    tablesetdict["table"][lane_str][port_str][slot_str] = self.degree + 1
+                                self.writeTbl(self.topo_sws_uni[i], "\n")
+                                slot_occupied = False
+            
+            json_file_name = "{0:s}{1:d}.json".format(TABLE_FILE, self.topo_sws_uni[i])
+            wf = open(json_file_name, 'w')
+            json.dump(tablesetdict, wf, indent=4)
+            wf.close()
         
         print(" !!! Routing tables for each sw are saved to output/ !!!")
         print(" ### OVER ###")
