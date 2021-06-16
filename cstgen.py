@@ -127,6 +127,7 @@ class cstgen:
         self.max_cp = 0
         self.max_id = 0
         self.isInit_writeLog = True
+        self.writeLog_str = ""
         self.isInit_writeFlow = None
         self.lane_num = 1
 
@@ -203,13 +204,17 @@ class cstgen:
                 src_index = self.topo_sws_uni.index(src)
             except ValueError:
                 print("Error: src number ({0}) is wrong.".format(h_src), sys.stderr)
-                self.writeLog("Error: src number ({0}) is wrong.".format(h_src))
+                #self.writeLog("Error: src number ({0}) is wrong.".format(h_src))
+                self.writeLog_str += "Error: src number ({0}) is wrong.".format(h_src)
+                self.writeLog(self.writeLog_str)
                 sys.exit(3)
             try:
                 dst_index = self.topo_sws_uni.index(dst)
             except ValueError:
                 print("Error: dst number ({0}) is wrong.".format(h_dst), sys.stderr)
-                self.writeLog("Error: dst number ({0}) is wrong.".format(h_dst))
+                #self.writeLog("Error: dst number ({0}) is wrong.".format(h_dst))
+                self.writeLog_str += "Error: dst number ({0}) is wrong.".format(h_dst)
+                self.writeLog(self.writeLog_str)
                 sys.exit(4)
 
             #localhost(h_src) --> src
@@ -358,8 +363,10 @@ class cstgen:
                 path_ct += 1
             elm.Valid = True
         
-        self.writeLog(" === # of slots === \n")
-        self.writeLog("{}\n".format(ID_max + 1))
+        #self.writeLog(" === # of slots === \n")
+        self.writeLog_str += " === # of slots === \n"
+        #self.writeLog("{}\n".format(ID_max + 1))
+        self.writeLog_str += "{}\n".format(ID_max + 1)
 
         # reassing slot # in ascending order based on flow id
         slots = list()
@@ -380,7 +387,9 @@ class cstgen:
             slots = self.maxSlots
         else:
             print("Error: # of slots is larger than the specified value.", sys.stderr)
-            self.writeLog("Error: # of slots is larger than the specified value.")
+            #self.writeLog("Error: # of slots is larger than the specified value.")
+            self.writeLog_str += "Error: # of slots is larger than the specified value."
+            self.writeLog(self.writeLog_str)
             sys.exit(8)
 
         for elm_cp in self.Crossing_Paths:
@@ -396,52 +405,71 @@ class cstgen:
                 k += 1
             if error:
                 print("Error: Slot # collision is occured.", sys.stderr)
-                self.writeLog("Error: Slot # collision is occured.")
+                #self.writeLog("Error: Slot # collision is occured.")
+                self.writeLog_str += "Error: Slot # collision is occured."
+                self.writeLog(self.writeLog_str)
                 sys.exit(5)
         
         port = 0
-        self.writeLog(" === Number of slots === \n")
-        self.writeLog(" SW0, SW1, SW2, SW3, ..., out, in\n")
+        #self.writeLog(" === Number of slots === \n")
+        self.writeLog_str += " === Number of slots === \n"
+        #self.writeLog(" SW0, SW1, SW2, SW3, ..., out, in\n")
+        self.writeLog_str += " SW0, SW1, SW2, SW3, ..., out, in\n"
 
-        self.writeLog(" SW {:2d}:".format(port // self.ports_p_sw))
+        #self.writeLog(" SW {:2d}:".format(port // self.ports_p_sw))
+        self.writeLog_str += " SW {:2d}:".format(port // self.ports_p_sw)
         for elm_cp in self.Crossing_Paths:
             if len(self.flows) == 0:
-                self.writeLog(" {}".format(len(elm_cp.pair_index)))
+                #self.writeLog(" {}".format(len(elm_cp.pair_index)))
+                self.writeLog_str += " {}".format(len(elm_cp.pair_index))
             else:
-                self.writeLog(" {}".format(len(elm_cp.flow_index)))
+                #self.writeLog(" {}".format(len(elm_cp.flow_index)))
+                self.writeLog_str += " {}".format(len(elm_cp.flow_index))
             port += 1
             if port % self.ports_p_sw == 0:
-                self.writeLog("\n")
+                #self.writeLog("\n")
+                self.writeLog_str += "\n"
                 if port != self.ports_p_sw * self.switch_num:
-                    self.writeLog(" SW {:2d}:".format(port // self.ports_p_sw))
+                    #self.writeLog(" SW {:2d}:".format(port // self.ports_p_sw))
+                    self.writeLog_str += " SW {:2d}:".format(port // self.ports_p_sw)
 
         for elm_cp in self.Crossing_Paths:
             elm_cp.Valid = True
         
-        self.writeLog(" === The number of paths on this application ===\n")
-        self.writeLog("{0} (all-toall cases: {1})\n".format(self.ct, (self.switch_num * self.Host_Num) * (self.switch_num * self.Host_Num - 1)))
-        self.writeLog(" === The average hops ===\n")
-        self.writeLog("{}\n".format(self.hops / self.ct))
+        #self.writeLog(" === The number of paths on this application ===\n")
+        self.writeLog_str += " === The number of paths on this application ===\n"
+        #self.writeLog("{0} (all-toall cases: {1})\n".format(self.ct, (self.switch_num * self.Host_Num) * (self.switch_num * self.Host_Num - 1)))
+        self.writeLog_str += "{0} (all-toall cases: {1})\n".format(self.ct, (self.switch_num * self.Host_Num) * (self.switch_num * self.Host_Num - 1))
+        #self.writeLog(" === The average hops ===\n")
+        self.writeLog_str += " === The average hops ===\n"
+        #self.writeLog("{}\n".format(self.hops / self.ct))
+        self.writeLog_str += "{}\n".format(self.hops / self.ct)
         
-        self.writeLog(" === Routing path for each node pair ===\n")
+        #self.writeLog(" === Routing path for each node pair ===\n")
+        self.writeLog_str += " === Routing path for each node pair ===\n"
         for current_pair in self.pairs:
             slot_num = self.flows[current_pair.flow_id].ID
 
-            self.writeLog(" Pair ID {0} (Flow ID {1}): \n".format(current_pair.pair_id, current_pair.flow_id))
+            #self.writeLog(" Pair ID {0} (Flow ID {1}): \n".format(current_pair.pair_id, current_pair.flow_id))
+            self.writeLog_str += " Pair ID {0} (Flow ID {1}): \n".format(current_pair.pair_id, current_pair.flow_id)
             self.writeFlow(current_pair.flow_id, "{0} {1} {2}\n".format(current_pair.src, current_pair.dst, slot_num))
 
             try:
                 src_index = self.topo_sws_uni.index(current_pair.src)
             except ValueError:
                 print("Error: src number ({0}) is wrong.".format(current_pair.src), sys.stderr)
-                self.writeLog("Error: src number ({0}) is wrong.".format(current_pair.src))
+                #self.writeLog("Error: src number ({0}) is wrong.".format(current_pair.src))
+                self.writeLog_str += "Error: src number ({0}) is wrong.".format(current_pair.src)
+                self.writeLog(self.writeLog_str)
                 sys.exit(6)
         
             try:
                 dst_index = self.topo_sws_uni.index(current_pair.dst)
             except ValueError:
                 print("Error: dst number ({0}) is wrong.".format(current_pair.dst), sys.stderr)
-                self.writeLog("Error: dst number ({0}) is wrong.".format(current_pair.dst))
+                #self.writeLog("Error: dst number ({0}) is wrong.".format(current_pair.dst))
+                self.writeLog_str += "Error: dst number ({0}) is wrong.".format(current_pair.dst)
+                self.writeLog(self.writeLog_str)
                 sys.exit(7)
         
             for j in range(1, len(current_pair.channels)):
@@ -450,27 +478,33 @@ class cstgen:
                 if j == 1:
                     target_sw = current_pair.src
                     output_port = self.Switch_Topo[current_pair.channels[j]]
-                    self.writeLog("   SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(target_sw, input_port, output_port, slot_num))
+                    #self.writeLog("   SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(target_sw, input_port, output_port, slot_num))
+                    self.writeLog_str += "   SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(target_sw, input_port, output_port, slot_num)
                 elif j == len(current_pair.channels) - 1:
                     target_sw = current_pair.dst
                     input_port = self.Switch_Topo[dst_index * self.ports_p_sw + current_pair.channels[j - 1] // self.ports_p_sw]
-                    self.writeLog("SW {0:d} (port {1:d}->{2:d})".format(target_sw, input_port, output_port))
+                    #self.writeLog("SW {0:d} (port {1:d}->{2:d})".format(target_sw, input_port, output_port))
+                    self.writeLog_str += "SW {0:d} (port {1:d}->{2:d})".format(target_sw, input_port, output_port)
                 else:
                     target_sw = current_pair.channels[j] // self.ports_p_sw
                     output_port = self.Switch_Topo[current_pair.channels[j]]
                     input_port = self.Switch_Topo[target_sw * self.ports_p_sw + current_pair.channels[j - 1] // self.ports_p_sw]
-                    self.writeLog("SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(self.topo_sws_uni[target_sw], input_port, output_port, slot_num))
+                    #self.writeLog("SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(self.topo_sws_uni[target_sw], input_port, output_port, slot_num))
+                    self.writeLog_str += "SW {0:d} (port {1:d}->{2:d}) - [slot {3:d}] -> ".format(self.topo_sws_uni[target_sw], input_port, output_port, slot_num)
 
                 self.Crossing_Paths[current_pair.channels[j]].routing_table.append(input_port)
                 self.Crossing_Paths[current_pair.channels[j]].routing_table.append(slot_num)
                 self.Crossing_Paths[current_pair.channels[j]].routing_table.append(current_pair.h_src)
                 self.Crossing_Paths[current_pair.channels[j]].routing_table.append(current_pair.h_dst)
                 self.Crossing_Paths[current_pair.channels[j]].routing_table.append(current_pair.pair_id)
-            self.writeLog("\n")
+            #self.writeLog("\n")
+            self.writeLog_str += "\n"
         
-        self.writeLog(" === Port information for each switch === \n")
+        #self.writeLog(" === Port information for each switch === \n")
+        self.writeLog_str += " === Port information for each switch === \n"
         for i in range(0, self.switch_num):
-            self.writeLog(" SW {} : \n".format(self.topo_sws_uni[i]))
+            #self.writeLog(" SW {} : \n".format(self.topo_sws_uni[i]))
+            self.writeLog_str += " SW {} : \n".format(self.topo_sws_uni[i])
             tablesetdict = OrderedDict()
             tablesetdict["slots"] = slots
             tablesetdict["ports"] = self.degree + 1
@@ -492,13 +526,20 @@ class cstgen:
                             if self.Crossing_Paths[index].routing_table[j + 1] == s: 
                                 tablesetdict["table"][lane_str]["port0"][slot_str] = self.Crossing_Paths[index].routing_table[j]
                                 slot_occupied = True
-                                self.writeLog("      Port {}".format(self.Crossing_Paths[index].routing_table[j]))
-                                self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
-                                self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
-                                self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
-                                self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                                #self.writeLog("      Port {}".format(self.Crossing_Paths[index].routing_table[j]))
+                                self.writeLog_str += "      Port {}".format(self.Crossing_Paths[index].routing_table[j])
+                                #self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                self.writeLog_str += " (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
+                                #self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                self.writeLog_str += ") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
+                                #self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
+                                self.writeLog_str += "), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2])
+                                #self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
+                                self.writeLog_str += " to node {}".format(self.Crossing_Paths[index].routing_table[j + 3])
+                                #self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
+                                self.writeLog_str += " (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4])
+                                #self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                                self.writeLog_str += ",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id)
                     if not slot_occupied:
                         tablesetdict["table"][lane_str]["port0"][slot_str] = self.degree + 1
                     slot_occupied = False
@@ -522,13 +563,20 @@ class cstgen:
                                                 temp_ip.append(input_port)
 
                                             slot_occupied = True
-                                            self.writeLog("      Port {}".format(input_port))
-                                            self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                            self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
-                                            self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
-                                            self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
-                                            self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
-                                            self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                                            #self.writeLog("      Port {}".format(input_port))
+                                            self.writeLog_str += "      Port {}".format(input_port)
+                                            #self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                            self.writeLog_str += " (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
+                                            #self.writeLog(") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
+                                            self.writeLog_str += ") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
+                                            #self.writeLog("), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2]))
+                                            self.writeLog_str += "), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2])
+                                            #self.writeLog(" to node {}".format(self.Crossing_Paths[index].routing_table[j + 3]))
+                                            self.writeLog_str += " to node {}".format(self.Crossing_Paths[index].routing_table[j + 3])
+                                            #self.writeLog(" (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4]))
+                                            self.writeLog_str += " (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4])
+                                            #self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
+                                            self.writeLog_str += ",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id)
 
                                 if not slot_occupied:
                                     tablesetdict["table"][lane_str][port_str][slot_str] = self.degree + 1
@@ -538,7 +586,9 @@ class cstgen:
             wf = open(json_file_name, 'w')
             json.dump(tablesetdict, wf, indent=4)
             wf.close()
-        
+
+        #write log if it is successful
+        self.writeLog(self.writeLog_str)
         print(" !!! Routing tables for each sw are saved to output/ !!!")
         print(" ### OVER ###")
 
@@ -570,12 +620,10 @@ class cstgenCaller:
 
         if not os.path.isfile(self.args.t):
             print("Error: {0:s} was not found.".format(self.args.t), sys.stderr)
-            self.writeLog("Error: {0:s} was not found.".format(self.args.t))
             sys.exit(1)
         
         if not os.path.isfile(self.args.c):
             print("Error: {0:s} was not found.".format(self.args.c), sys.stderr)
-            self.writeLog("Error: {0:s} was not found.".format(self.args.c))
             sys.exit(2)
         
         if self.args.s is not None:
