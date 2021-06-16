@@ -127,7 +127,6 @@ class cstgen:
         self.max_cp = 0
         self.max_id = 0
         self.isInit_writeLog = True
-        self.isInit_writeTbl = None
         self.isInit_writeFlow = None
         self.lane_num = 1
 
@@ -140,28 +139,17 @@ class cstgen:
         f.write(s)
         f.close()
         self.isInit_writeLog = False
-    
-    ##---------------------------------------------------------
-    def writeTbl(self, board:int, s):
-        file_name = "{0:s}{1:d}".format(TABLE_FILE, board)
-        if self.isInit_writeTbl[board]:
-            f = open(file_name, 'w')
-        else:
-            f = open(file_name, 'a')
-        f.write(s)
-        f.close()
-        self.isInit_writeTbl[board] = False
 
     ##---------------------------------------------------------
     def writeFlow(self, flow:int, s):
         file_name = "{0:s}{1:d}".format(FLOW_FILE, flow)
-        if self.isInit_writeTbl[flow]:
+        if self.isInit_writeFlow[flow]:
             f = open(file_name, 'w')
         else:
             f = open(file_name, 'a')
         f.write(s)
         f.close()
-        self.isInit_writeTbl[flow] = False
+        self.isInit_writeFlow[flow] = False
 
     ##---------------------------------------------------------
     def readTopologyFile(self):
@@ -172,7 +160,6 @@ class cstgen:
         self.degree = max(collections.Counter(topo_sws_dup).values())
         self.ports = ((self.switch_num - 1) + 1 + 2 * self.Host_Num) * self.switch_num
         self.ports_p_sw = ((self.switch_num - 1) + 1 + 2 * self.Host_Num)
-        self.isInit_writeTbl = [True] * self.switch_num
 
     ##---------------------------------------------------------
     def routing(self):
@@ -489,8 +476,6 @@ class cstgen:
             tablesetdict["ports"] = self.degree + 1
             tablesetdict["outputs"] = self.lane_num # for multi-lane
             tablesetdict["table"] = OrderedDict()
-            self.writeTbl(self.topo_sws_uni[i], "{} {}\n".format(self.degree + 1, slots))
-            self.writeTbl(self.topo_sws_uni[i], "0000\n")
 
             for lane_id in range(0, self.lane_num):
                 lane_str = "output{}".format(lane_id)
@@ -506,7 +491,6 @@ class cstgen:
                         for j in range(0, len(self.Crossing_Paths[index].routing_table), 5):
                             if self.Crossing_Paths[index].routing_table[j + 1] == s: 
                                 tablesetdict["table"][lane_str]["port0"][slot_str] = self.Crossing_Paths[index].routing_table[j]
-                                self.writeTbl(self.topo_sws_uni[i], "{} ".format(self.Crossing_Paths[index].routing_table[j]))
                                 slot_occupied = True
                                 self.writeLog("      Port {}".format(self.Crossing_Paths[index].routing_table[j]))
                                 self.writeLog(" (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1]))
@@ -517,8 +501,6 @@ class cstgen:
                                 self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
                     if not slot_occupied:
                         tablesetdict["table"][lane_str]["port0"][slot_str] = self.degree + 1
-                        self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
-                    self.writeTbl(self.topo_sws_uni[i], "\n")
                     slot_occupied = False
 
                 for n in range(1, self.degree + 1):
@@ -528,7 +510,6 @@ class cstgen:
                         index = self.ports_p_sw * i + op
                         out_port = self.Switch_Topo[index]
                         if (out_port == n):
-                            self.writeTbl(self.topo_sws_uni[i], "{:04x}\n".format(out_port << 8))
                             for s in range(0, slots):
                                 slot_str = "slot{}".format(s)
                                 temp_ip = list()
@@ -537,7 +518,6 @@ class cstgen:
                                         if self.Crossing_Paths[index].routing_table[j + 1] == s:
                                             input_port = self.Crossing_Paths[index].routing_table[j]
                                             if not (input_port in temp_ip):
-                                                self.writeTbl(self.topo_sws_uni[i], "{} ".format(input_port))
                                                 tablesetdict["table"][lane_str][port_str][slot_str] = input_port
                                                 temp_ip.append(input_port)
 
@@ -551,9 +531,7 @@ class cstgen:
                                             self.writeLog(",Flow ID {})\n".format(self.pairs[self.Crossing_Paths[index].routing_table[j + 4]].flow_id))
 
                                 if not slot_occupied:
-                                    self.writeTbl(self.topo_sws_uni[i], str(self.degree + 1))
                                     tablesetdict["table"][lane_str][port_str][slot_str] = self.degree + 1
-                                self.writeTbl(self.topo_sws_uni[i], "\n")
                                 slot_occupied = False
             
             json_file_name = "{0:s}{1:d}.json".format(TABLE_FILE, self.topo_sws_uni[i])
