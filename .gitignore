@@ -5,4 +5,8 @@
 .sw[op]
 *.bak
 
+output/
+*.txt
+!fic-topo-file-cross.txt
+
 __pycache__
