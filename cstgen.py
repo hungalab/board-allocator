@@ -549,8 +549,6 @@ class cstgen:
 
         #write log if it is successful
         self.writeLog(self.writeLog_str)
-        print(" !!! Routing tables for each sw are saved to output/ !!!")
-        print(" ### OVER ###")
 
     ##---------------------------------------------------------
     def main(self):
@@ -561,6 +559,10 @@ class cstgen:
         self.routing()
         self.slotAlloc()
         self.showPath()
+
+    ##---------------------------------------------------------
+    def flowid2slotid(self, flowid:int):
+        return self.flows[flowid].ID
 
 #--------------------------------------------------------------
 class cstgenCaller:
@@ -593,7 +595,9 @@ class cstgenCaller:
     def main(self):
         self.argparse()
         actor = cstgen(self.args.t, self.args.c, self.args.s, self.isSlotLimited)
-        result = actor.main()
+        actor.main()
+        print(" !!! Routing tables for each sw are saved to output/ !!!")
+        print(" ### OVER ###")
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
