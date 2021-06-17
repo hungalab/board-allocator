@@ -482,11 +482,11 @@ class cstgen:
             tablesetdict = OrderedDict()
             tablesetdict["slots"] = slots
             tablesetdict["ports"] = self.degree + 1
-            tablesetdict["outputs"] = self.lane_num # for multi-lane
+            tablesetdict["switches"] = self.lane_num # for multi-lane
             tablesetdict["table"] = OrderedDict()
 
             for lane_id in range(0, self.lane_num):
-                lane_str = "output{}".format(lane_id)
+                lane_str = "switch{}".format(lane_id)
                 tablesetdict["table"][lane_str] = OrderedDict()
                 slot_occupied = False
                 index = self.ports_p_sw * i + (self.switch_num - 1) + 2 * self.Host_Num
