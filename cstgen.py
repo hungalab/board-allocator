@@ -282,30 +282,6 @@ class cstgen:
             f.channels = list(set(f.channels))
 
         ID_max = 0
-
-        for elm in self.Crossing_Paths:
-            if len(elm.flow_index) > self.max_cp:
-                self.max_cp = len(elm.flow_index)
-            p_ct = 0
-            while p_ct < len(elm.flow_index):
-                u = elm.flow_index[p_ct]
-                is_duplicate = False
-                p_ct_t = 0
-                while p_ct_t < p_ct:
-                    v = elm.flow_index[p_ct_t]
-                    #print("v: {}".format(v))
-                    for m in self.flows[u].pairs_id:
-                        for n in self.flows[v].pairs_id:
-                            if self.pairs[m].h_dst == self.pairs[n].h_dst:
-                                is_duplicate = True
-                                break
-                        if is_duplicate:
-                            break
-                    if is_duplicate:
-                        break
-                    p_ct_t += 1
-                p_ct += 1
-        
         tmp_max_cp_elm = max(self.Crossing_Paths, key=lambda x: len(x.flow_index))
         tmp_max_cp = len(tmp_max_cp_elm.flow_index)
         self.max_cp = 0
