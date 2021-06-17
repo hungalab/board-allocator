@@ -108,9 +108,6 @@ def dijkstra(V:int, graph:list, src:int, pair_path:list):
                 parent[v] = u
                 dist[v] = dist[u] + graph[u * V + v]
     
-    #for i in parent:
-    #    print(i)
-    
     printSolution(dist, V, parent, src, pair_path)
 
 #--------------------------------------------------------------
