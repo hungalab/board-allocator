@@ -539,7 +539,7 @@ class cstgen:
                                             slot_occupied = True
                                             self.writeLog_str += "      Port {}".format(input_port)
                                             self.writeLog_str += " (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
-                                            self.writeLog_str += ") --> Port 0 (Slot {}".format(self.Crossing_Paths[index].routing_table[j + 1])
+                                            self.writeLog_str += ") --> Port {0} (Slot {1}".format(out_port, self.Crossing_Paths[index].routing_table[j + 1])
                                             self.writeLog_str += "), from node {}".format(self.Crossing_Paths[index].routing_table[j + 2])
                                             self.writeLog_str += " to node {}".format(self.Crossing_Paths[index].routing_table[j + 3])
                                             self.writeLog_str += " (Pair ID {}".format(self.Crossing_Paths[index].routing_table[j + 4])
