@@ -16,6 +16,15 @@ TABLE_FILE = OUTPUT_DIR + "/" + TABLE_FILE_NAME
 FLOW_FILE = OUTPUT_DIR + "/" + FLOW_FILE_NAME
 LOG_FILE = OUTPUT_DIR + "/" + LOG_FILE_NAME
 
+# FiC board list
+MK1_LIST = ["fic00", "fic01", "fic02", "fic03",
+            "fic04", "fic05", "fic06", "fic07",
+            "fic08", "fic09", "fic10", "fic11"]
+MK2_LIST = ["m2fic00", "m2fic01", "m2fic02", "m2fic03",
+            "m2fic04", "m2fic05", "m2fic06", "m2fic07",
+            "m2fic08", "m2fic09", "m2fic10", "m2fic11"]
+FIC_LIST = MK1_LIST + MK2_LIST
+
 #--------------------------------------------------------------
 class Flow:
     def __init__(self, id, ID):
@@ -130,6 +139,7 @@ class cstgen:
         self.writeLog_str = ""
         self.isInit_writeFlow = None
         self.lane_num = 1
+        self.tableList = list()
 
     ##---------------------------------------------------------
     def writeLog(self, s):
@@ -542,6 +552,9 @@ class cstgen:
                                     tablesetdict["table"][lane_str][port_str][slot_str] = self.degree + 1
                                 slot_occupied = False
             
+            #register table
+            self.tableList.append(tablesetdict)
+            #write json file
             json_file_name = "{0:s}{1:d}.json".format(TABLE_FILE, self.topo_sws_uni[i])
             wf = open(json_file_name, 'w')
             json.dump(tablesetdict, wf, indent=4)
@@ -563,6 +576,11 @@ class cstgen:
     ##---------------------------------------------------------
     def flowid2slotid(self, flowid:int):
         return self.flows[flowid].ID
+
+    ##---------------------------------------------------------
+    def table(self, board:str):
+        index = self.topo_sws_uni.index(FIC_LIST.index(board))
+        return self.tableList[index]
 
 #--------------------------------------------------------------
 class cstgenCaller:
