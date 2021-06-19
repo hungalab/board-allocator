@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 import collections
 from collections import OrderedDict
+import copy
 
 OUTPUT_DIR = "output"
 TABLE_FILE_NAME = "board"
@@ -66,49 +67,59 @@ def cleanDir(s):
 #--------------------------------------------------------------
 def minDistance(dist:list, sptSet:list, V:int):
     min_value = 10000
+    min_list = list()
 
     for v in range(0, V):
-        if (not sptSet[v]) and (dist[v] <= min_value):
+        if (not sptSet[v]) and (dist[v] < min_value):
             min_value = dist[v]
-            min_index = v
+            min_list = [v]
+        elif (not sptSet[v]) and (dist[v] == min_value):
+            min_list.append(v)
 
-    return min_index
+    return min_list
 
 #--------------------------------------------------------------
-def printPath(parent:list, j:int, src:int, dst:int, pair_path:list, V:int):
-    if parent[j] == -1:
+def printPath(parent:list, j:int, src:int, dst:int, pair_path:list, V:int, path:list):
+    if parent[j] == []:
+        if j == src:
+            path.reverse()
+            pair_path[src * V + dst].append(path)
         return
-    
-    printPath(parent, parent[j], src, dst, pair_path, V)
 
-    pair_path[src * V + dst].append(j)
+    path.append(j)
+    
+    for p in parent[j]:
+        printPath(parent, p, src, dst, pair_path, V, copy.deepcopy(path))
 
 #--------------------------------------------------------------
-def printSolution(dist:list, V:int, parent:list, src:int, pair_path:list):
+def printSolution(V:int, parent:list, src:int, pair_path:list):
     for i in range(0, V):
         if i != src:
             dst = i
-            printPath(parent, i, src, dst, pair_path, V)
+            printPath(parent, i, src, dst, pair_path, V, list())
 
 #--------------------------------------------------------------
 def dijkstra(V:int, graph:list, src:int, pair_path:list):
     dist = [10000] * V
     sptSet = [False] * V
-    parent = [-1] * V
+    parent = [list() for i in range(0, V)]
 
     dist[src] = 0
 
     for count in range(0, V - 1):
-        u = minDistance(dist, sptSet, V)
+        u_list = minDistance(dist, sptSet, V)
 
-        sptSet[u] = True
+        for u in u_list:
+            sptSet[u] = True
 
-        for v in range(0, V):
-            if (not sptSet[v]) and graph[u * V + v] and (dist[u] + graph[u * V + v] < dist[v]):
-                parent[v] = u
-                dist[v] = dist[u] + graph[u * V + v]
+            for v in range(0, V):
+                if (not sptSet[v]) and graph[u * V + v] and (dist[u] + graph[u * V + v] < dist[v]):
+                    parent[v].append(u)
+                    dist[v] = dist[u] + graph[u * V + v]
+                elif (not sptSet[v]) and graph[u * V + v] and (dist[u] + graph[u * V + v] == dist[v]):
+                    parent[v].append(u)
     
-    printSolution(dist, V, parent, src, pair_path)
+    printSolution(V, parent, src, pair_path)
 
 #--------------------------------------------------------------
 class cstgen:
@@ -174,6 +185,7 @@ class cstgen:
         self.Switch_Topo = [-1] * self.ports
         self.Crossing_Paths = [Cross_Paths() for i in range(0, self.ports)]
 
+        # create topology list
         for topo_elm in self.topo_file:
             i0 = self.topo_sws_uni.index(topo_elm[0])
             connect_sw0 = topo_elm[2]
@@ -186,6 +198,7 @@ class cstgen:
             k1 = self.topo_sws_uni.index(connect_sw1)
             self.Switch_Topo[i1 * self.ports_p_sw + k1] = connect_port1
         
+        # create graph (0: not connect, 1: connect)
         V = self.switch_num
         graph = list()
         for i in range(0, V * V):
@@ -194,9 +207,19 @@ class cstgen:
             else:
                 graph.append(1)
 
+        # dijsktra
         pair_path = [[] for i in range(0, V*V)]
         for i in range(0, V):
             dijkstra(V, graph, i, pair_path)
+        
+        for i in range(0, V):
+            for j in range(0, V):
+                print(" === src: {}, dst: {} ===".format(i, j))
+                for p in pair_path[i * V + j]:
+                    print(p)
+        
+        exit()
+
 
         comm_list = np.loadtxt(self.comm_partern_file, dtype='int').tolist()
         for comm in comm_list:
@@ -276,11 +299,13 @@ class cstgen:
 
     ##---------------------------------------------------------
     def slotAlloc(self):
+        # erase duplicates
         for elm in self.Crossing_Paths:
             elm.flow_index = list(set(elm.flow_index))
         for f in self.flows:
             f.channels = list(set(f.channels))
 
+        # slot allocation
         ID_max = 0
         tmp_max_cp_elm = max(self.Crossing_Paths, key=lambda x: len(x.flow_index))
         tmp_max_cp = len(tmp_max_cp_elm.flow_index)
