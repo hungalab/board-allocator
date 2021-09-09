@@ -27,6 +27,13 @@ MK2_LIST = ["m2fic00", "m2fic01", "m2fic02", "m2fic03",
 FIC_LIST = MK1_LIST + MK2_LIST
 
 #--------------------------------------------------------------
+class Tree:
+    def __init__(self, node_num):
+        self.matrix = [[0] * (node_num + 1) for i in range(node_num + 1)]
+        self.path_list = list()
+        self.weight = 0
+
+#--------------------------------------------------------------
 class Flow:
     def __init__(self, id, ID):
         self.pairs_id = list()
@@ -148,6 +155,7 @@ class cstgen:
         self.lane_num = 1
         self.tableList = list()
         self.pair_paths = None
+        self.tree_list = list()
 
     ##---------------------------------------------------------
     def writeLog(self, s):
@@ -210,6 +218,13 @@ class cstgen:
         self.pair_paths = [[] for i in range(0, V * V)]
         for i in range(0, V):
             dijkstra(V, graph, i, self.pair_paths)
+        
+        #for src in range(V):
+        #    for dst in range(V):
+        #        print("====src: {}, dst: {}====".format(src, dst))
+        #        for elm in self.pair_paths[src * V + dst]:
+        #            print(elm)
+        #exit(0) #for debug
 
     ##---------------------------------------------------------
     def raedCommunicationPatern(self):
@@ -398,7 +413,56 @@ class cstgen:
         for comm in self.comm_list:
             src = comm[0]
             dst = comm[1]
-            pair_paths_for_comm_list[src * V + dst] = self.pair_paths[src * V + dst]
+            flowid = comm[2]
+            if len(self.tree_list) <= flowid:
+                self.tree_list.append([Tree(V)])
+            
+            new_list = list()
+            for p_tree in self.tree_list[flowid]:
+                for elm in self.pair_paths[src * V + dst]:
+                    # update the tree object
+                    tree = copy.deepcopy(p_tree)
+                    parent = src
+                    tree.matrix[parent][V] = 1
+                    for child in elm:
+                        if tree.matrix[parent][child] == 0:
+                            tree.matrix[parent][child] = 1
+                            tree.weight += 1
+                        parent = child
+                    path = [src] + elm
+                    tree.path_list.append(path)
+
+                    # append the tree object
+                    new_list.append(tree)
+
+            # update the list
+            self.tree_list[flowid] = new_list
+        
+        for elm in self.tree_list:
+            elm.sort(key=lambda x: x.weight)
+
+        # for debug --------------------------------------------------
+        print("matrix:")
+        for elm in self.tree_list[0][0].matrix:
+            print(elm)
+        print("paths:")
+        for elm in self.tree_list[0][0].path_list:
+            print(elm)
+        print("weight: {}".format(self.tree_list[0][0].weight))
+
+        i = 0
+        tmp = 1
+        for elm in self.tree_list:
+            print("flowid {}: # of trees = {}".format(i, len(elm)))
+            tmp *= len(elm)
+            i += 1
+        
+        i = 0
+        for elm in self.tree_list[0]:
+            print("index {}: weight = {}".format(i, elm.weight))
+            i += 1
+        exit(0)
+        #-------------------------------------------------------------
         
         #generate the combination
         isbegin = True
