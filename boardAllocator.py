@@ -9,6 +9,8 @@ import numpy as np
 import collections
 from collections import OrderedDict
 from enum import Enum
+import time
+import random
 
 ##---------------------------------------------------------
 def parser():
@@ -69,9 +71,12 @@ class BoardAllocator:
         self.st_path_list = list() # 1D list: st_path_list[pathId] = [s, v0, v1, ..., t] <return value is 1D list>
         self.st_path_table = None # 2D list: st_path_table[src][dst] = [pathId0, pathId1, ...] <return value is 1D list>
         self.path_id2st = list() # 1D list: path_id2st[pathId] = (src, dst) <return value is tuple>
-        self.vNode_list = list() # 1D list: the list of VNode
-        self.pair_list = list() # 1D list: the list of pair
-        self.app_list = list() # 1D list: the list of App
+        self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
+        self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
+        self.allocating_app_list = list() # 1D list: the list of Apps that are being allocated
+        self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
+        self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
+        self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
         self._vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self._pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
         self._flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
@@ -171,39 +176,66 @@ class BoardAllocator:
         for pair in comm_tmp:
             pair_id = self.generate_pair_id()
             pair_id_list.append(pair_id)
-            self.pair_list.append(Pair(pair_id, pair[0], pair[1], pair[2]))
+            self.allocating_pair_list.append(Pair(pair_id, pair[0], pair[1], pair[2]))
 
         # make App
         vNode_id_list = [label2vNode_id[elm] for elm in vNode_label_list]
-        self.app_list.append(App(self.generate_app_id(), vNode_id_list, pair_id_list, communicationFile))
+        self.allocating_app_list.append(App(self.generate_app_id(), vNode_id_list, pair_id_list, communicationFile))
 
         # make vNodes
         for vNode_id in vNode_id_list:
             send_pair_id_list, recv_pair_id_list = list(), list()
-            for pair in self.pair_list:
+            for pair in self.allocating_pair_list:
                 if pair.src == vNode_id:
                     send_pair_id_list.append(pair.pair_id)
                 elif pair.dst == vNode_id:
                     recv_pair_id_list.append(pair.pair_id)
-            self.vNode_list.append(VNode(vNode_id, send_pair_id_list, recv_pair_id_list))
+            self.allocating_vNode_list.append(VNode(vNode_id, send_pair_id_list, recv_pair_id_list))
+
+    ##---------------------------------------------------------
+    def alns(self, max_execution_time):
+        p_break_path = len(self.pair_list) # probability of executing break_path()
+        p_node_swap = len(self.vNode_list) # probability of executing node_swap()
+        p_range = p_break_path # normalization value
+
+        start_time = time.time()
+
+        # genarate the initial solution
+        self.generate_initial_solution()
+
+        while True:
+            # execute break_path or node_swap
+            if random.randrange(p_range) < p_break_path:
+                self.break_path()
+            else:
+                #self.node_swap()
+                pass
+            
+            # if time is up, break the loop
+            if time.time() - start_time >= max_execution_time:
+                break
     
+    ##---------------------------------------------------------
     def print_app(self):
         print(" ##### App ##### ")
-        for app in self.app_list:
+        all_app_list = self.running_app_list + self.allocating_app_list
+        for app in all_app_list:
             print("app_id: {}".format(app.app_id))
             print("vNode_id_list: {}".format(app.vNode_id_list))
             print("pair_id_list: {}".format(app.pair_id_list))
             print(" --------------------------------------------------- ")
 
         print("\n ##### vNode ##### ")
-        for vNode in self.vNode_list:
+        all_vNode_list = self.running_vNode_list + self.allocating_vNode_list
+        for vNode in all_vNode_list:
             print("vNode_id: {}".format(vNode.vNode_id))
             print("send_pair_id_list: {}".format(vNode.send_pair_id_list))
             print("recv_pair_id_list: {}".format(vNode.recv_pair_id_list))
             print(" --------------------------------------------------- ")
         
         print("\n ##### Pair ##### ")
-        for pair in self.pair_list:
+        all_pair_list = self.running_pair_list + self.allocating_pair_list
+        for pair in all_pair_list:
             print("pair_id: {}".format(pair.pair_id))
             print("src: {}".format(pair.src))
             print("dst: {}".format(pair.dst))
