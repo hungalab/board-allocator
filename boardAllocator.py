@@ -189,10 +189,11 @@ class BoardAllocator:
     
     def print_app(self):
         print(" ##### App ##### ")
-        app = self.app_list[0]
-        print("app_id: {}".format(app.app_id))
-        print("vNode_id_list: {}".format(app.vNode_id_list))
-        print("pair_id_list: {}".format(app.pair_id_list))
+        for app in self.app_list:
+            print("app_id: {}".format(app.app_id))
+            print("vNode_id_list: {}".format(app.vNode_id_list))
+            print("pair_id_list: {}".format(app.pair_id_list))
+            print(" --------------------------------------------------- ")
 
         print("\n ##### vNode ##### ")
         for vNode in self.vNode_list:
