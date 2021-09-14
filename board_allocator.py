@@ -4,13 +4,15 @@ import sys, traceback
 import os
 import os.path
 import shutil
-import graph_tool.all as gt
 import numpy as np
 import collections
 from collections import OrderedDict
-from enum import Enum
 import time
-import random
+
+import graph_tool.all as gt
+
+# my library
+from allocatorunit import AllocatorUnit, App, Pair, VNode
 
 ##---------------------------------------------------------
 def parser():
@@ -29,13 +31,6 @@ def parser():
         sys.exit(2)
     
     return args
-
-# state of VNode
-#--------------------------------------------------------------
-class vNodeState(Enum):
-    ALLOCATING = 1
-    RUNNNING = 2
-    TERMINATED = 3
 
 #--------------------------------------------------------------
 class App:
@@ -65,16 +60,10 @@ class VNode:
         self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated (including tmporary), the value is None
 
 #--------------------------------------------------------------
-class BoardAllocator:
-    def __init__(self, topologyFile):
-        # define variable
+class AllocatorUnit:
+    def __init__(self):
         ## topology
         self.topology = gt.Graph() # the topology for this allocator
-        ## virtualization of the topology file
-        self.node_index2label = {} # dict: (index in self.topology) |-> (label in topologyFile)
-        self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.topology)
-        ## shortest path list
-        self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
         ## allocating object lists
         self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
         self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
@@ -86,11 +75,26 @@ class BoardAllocator:
         ## manage the real node
         self.temp_allocated_rNode_list = list() # 1D list: the list of rNodes that is temporary allocated
         self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_list)
+
+#--------------------------------------------------------------
+class BoardAllocator:
+    def __init__(self, topologyFile):
+        # define variable
+        ## Allocator Unit
+        self.au = None
+        ## virtualization of the topology file
+        self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
+        self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
+        ## shortest path list
+        self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
         ## id generators
         self._vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self._pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
         self._flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
         self._app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
+
+        # make topology
+        topology = gt.Graph()
 
         # read topology file
         topo_tmp = np.loadtxt(topologyFile, dtype='int').tolist()
@@ -99,7 +103,7 @@ class BoardAllocator:
         list_tmp = list(r[0] for r in topo_tmp) + list(r[2] for r in topo_tmp)
         list_tmp = list(set(list_tmp))
         verticesNum = len(list_tmp) # number of vertices
-        self.topology.add_vertex(verticesNum)
+        topology.add_vertex(verticesNum)
 
         # make node's dictionaries
         for i, label in enumerate(list_tmp):
@@ -108,30 +112,21 @@ class BoardAllocator:
 
         # make bi-directional edges
         for e in topo_tmp:
-            self.topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]])
-            self.topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
+            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]])
+            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
 
-        # create properties
-        self.topology.ep["slot_num"] = self.topology.new_ep("short") # number of slots for each edge
-        self.topology.ep["pairs"] = self.topology.new_ep("object") # list of pairs for each edge
-        for e in self.topology.edges():
-            self.topology.ep.slot_num[e] = 0
-            self.topology.ep.pairs[e] = list()
-        self.topology.vp["injection_slot_num"] = self.topology.new_vp("short") # number of slots for each injection link
-        self.topology.vp["injection_pairs"] = self.topology.new_vp("object") # list of pairs for each injection link
-        for v in self.topology.vertices():
-            self.topology.vp.injection_slot_num[v] = 0
-            self.topology.vp.injection_pairs[v] = list()
-        
         # create st-path list
         self.st_path_table = [[[] for _ in range(0, verticesNum)] for _ in range(0, verticesNum)]
         for src in range(0, verticesNum):
             for dst in range(0, verticesNum):
-                for paths in gt.all_shortest_paths(self.topology, src, dst):
+                for paths in gt.all_shortest_paths(topology, src, dst):
                     self.st_path_table[src][dst].append(paths.tolist())
+        
+        # make allocatorunit
+        self.au = AllocatorUnit(topology)
 
         # draw the graph
-        #gt.graph_draw(self.topology, vertex_text = self.topology.vertex_index, output="test.png")
+        #gt.graph_draw(topology, vertex_text = topology.vertex_index, output="test.png")
     
     # genaration of vNode_id: it is used only when you create a new VNode
     ##---------------------------------------------------------
@@ -179,7 +174,6 @@ class BoardAllocator:
         
         # make Pairs
         pair_list = [Pair(self.generate_pair_id(), pair[0], pair[1], pair[2]) for pair in comm_tmp]
-        self.allocating_pair_list += pair_list
 
         # make vNodes
         vNode_list = list()
@@ -192,7 +186,6 @@ class BoardAllocator:
                 elif pair.dst == vNode_id:
                     recv_pair_list.append(pair)
             vNode_list.append(VNode(vNode_id, send_pair_list, recv_pair_list))
-        self.allocating_vNode_list += vNode_list
 
         # set Pair.src_vNode or Pair.dst_vNode
         for pair in pair_list:
@@ -203,98 +196,12 @@ class BoardAllocator:
                     pair.dst_vNode = vNode
 
         # make App
-        self.allocating_app_list.append(App(self.generate_app_id(), vNode_list, pair_list, communicationFile))
-
-    ##---------------------------------------------------------
-    def random_single_pair_allocation(self, pair):
-        # pick up src and dst rNode_id
-        src = pair.src_vNode.rNode_id
-        dst = pair.dst_vNode.rNode_id
-
-        # pick up a path
-        path = random.choice(self.st_path_table[src][dst])
-
-        # update injection properties
-        for exist_pair in self.topology.vp.injection_pairs:
-            
-
-        # update edge properties
-
-    ##---------------------------------------------------------
-    def random_single_node_allocation(self, vNode):
-        # pick up an empty rNove
-        map_rNode_id = random.choice(self.empty_rNode_list)
-        self.empty_rNode_list.remove(map_rNode_id)
-
-        # temporary node allocation
-        self.temp_allocated_rNode_list.append(map_rNode_id)
-        vNode.rNode_id = map_rNode_id
-
-        # temporary send-path allocation (if dst node is not allocated, the operation is not executed)
-        for send_pair in vNode.send_pair_list:
-            if send_pair.dst_vNode.rNode_id != None:
-                random_single_pair_allocation(send_pair)
-        
-        # temporary recv-path allocation (if src node is not allocated, the operation is not executed)
-        for recv_pair in vNode.recv_pair_list:
-            if recv_pair.src_vNode.rNode_id != None:
-                random_single_pair_allocation(recv_pair)
-
-    ##---------------------------------------------------------
-    def alns(self, max_execution_time):
-        p_break_path = len(self.allocating_pair_list) # probability of executing break_path()
-        p_node_swap = len(self.allocating_vNode_list) # probability of executing node_swap()
-        p_range = p_break_path # normalization value
-
-        start_time = time.time()
-
-        # genarate the initial solution
-        self.generate_initial_solution()
-
-        while True:
-            # execute break_path or node_swap
-            if random.randrange(p_range) < p_break_path:
-                self.break_path()
-            else:
-                #self.node_swap()
-                pass
-            
-            # if time is up, break the loop
-            if time.time() - start_time >= max_execution_time:
-                break
-    
-    ##---------------------------------------------------------
-    def print_app(self):
-        print(" ##### App ##### ")
-        all_app_list = self.running_app_list + self.allocating_app_list
-        for app in all_app_list:
-            print("app_id: {}".format(app.app_id))
-            print("vNode_id_list: {}".format([vNode.vNode_id for vNode in app.vNode_list]))
-            print("pair_id_list: {}".format([pair.pair_id for pair in app.pair_list]))
-            print(" --------------------------------------------------- ")
-
-        print("\n ##### vNode ##### ")
-        all_vNode_list = self.running_vNode_list + self.allocating_vNode_list
-        for vNode in all_vNode_list:
-            print("vNode_id: {}".format(vNode.vNode_id))
-            print("send_pair_id_list: {}".format([send_pair.pair_id for send_pair in vNode.send_pair_list]))
-            print("recv_pair_id_list: {}".format([recv_pair.pair_id for recv_pair in vNode.recv_pair_list]))
-            print(" --------------------------------------------------- ")
-        
-        print("\n ##### Pair ##### ")
-        all_pair_list = self.running_pair_list + self.allocating_pair_list
-        for pair in all_pair_list:
-            print("pair_id: {}".format(pair.pair_id))
-            print("src: {}".format(pair.src))
-            print("dst: {}".format(pair.dst))
-            print("flow_id: {}".format(pair.flow_id))
-            print(" --------------------------------------------------- ")
-
+        app = App(self.generate_app_id(), vNode_list, pair_list, communicationFile)
+        self.au.add_app(app, vNode_list, pair_list)
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
-    actor.loadApp(args.c)
-    actor.print_app()
+    actor.load_app(args.c)
     print(" ### OVER ### ")
