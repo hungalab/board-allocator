@@ -52,6 +52,7 @@ class Pair:
         self.src = src
         self.dst = dst
         self.flow_id = flow_id
+        self.path_id = None # using path id
 
 #--------------------------------------------------------------
 class VNode:
@@ -59,7 +60,7 @@ class VNode:
         self.vNode_id = vNode_id # int: virtualized node ID
         self.send_pair_id_list = send_pair_id_list # list: list of pair_id to be sent by this VNode
         self.recv_pair_id_list = recv_pair_id_list # list: list of pair_id to be recieved by this VNode
-        self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated, the value is None
+        self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated (including tmporary), the value is None
 
 #--------------------------------------------------------------
 class BoardAllocator:
@@ -77,6 +78,8 @@ class BoardAllocator:
         self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
         self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
         self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
+        self.temp_allocated_rNode_list = list() # 1D list: the list of rNodes that is temporary allocated
+        self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_list)
         self._vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self._pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
         self._flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
@@ -191,6 +194,20 @@ class BoardAllocator:
                 elif pair.dst == vNode_id:
                     recv_pair_id_list.append(pair.pair_id)
             self.allocating_vNode_list.append(VNode(vNode_id, send_pair_id_list, recv_pair_id_list))
+
+    ##---------------------------------------------------------
+    def random_single_node_allocation(self, vNode):
+        # pick up an empty rNove
+        map_rNode_id = random.choice(self.empty_rNode_list)
+        self.empty_rNode_list.remove(map_rNode_id)
+
+        # temporary node allocation
+        self.temp_allocated_rNode_list.append(map_rNode_id)
+        vNode.rNode_id = map_rNode_id
+
+        # temporary send-path allocation (if dst node is not allocated, the operation is not executed)
+        for dst_rNode
+
 
     ##---------------------------------------------------------
     def alns(self, max_execution_time):
