@@ -41,8 +41,8 @@ class vNodeState(Enum):
 class App:
     def __init__(self, app_id, vNode_list, pair_list, communicationFile):
         self.app_id = app_id
-        self.vNode_list = vNode_list # list: list of vNode_id of the App
-        self.pair_list = pair_list # list: list of pair_id of the App
+        self.vNode_list = vNode_list # list: list of vNode of the App
+        self.pair_list = pair_list # list: list of pair of the App
         self.communicationFile = communicationFile
 
 #--------------------------------------------------------------
@@ -50,9 +50,11 @@ class Pair:
     def __init__(self, pair_id, src, dst, flow_id):
         self.pair_id = pair_id
         self.src = src
+        self.src_vNode = None
         self.dst = dst
+        self.dst_vNode = None
         self.flow_id = flow_id
-        self.path_id = None # using path id
+        self.path_id = None # using path list
 
 #--------------------------------------------------------------
 class VNode:
@@ -110,16 +112,16 @@ class BoardAllocator:
             self.topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
 
         # create properties
-        self.topology.ep["slotNum"] = self.topology.new_ep("short") # number of slots for each edge
-        self.topology.ep["flows"] = self.topology.new_ep("object") # list of slots for each edge
+        self.topology.ep["slot_num"] = self.topology.new_ep("short") # number of slots for each edge
+        self.topology.ep["pairs"] = self.topology.new_ep("object") # list of pairs for each edge
         for e in self.topology.edges():
-            self.topology.ep.slotNum[e] = 0
-            self.topology.ep.flows[e] = list()
-        self.topology.vp["injectionSlotNum"] = self.topology.new_vp("short") # number of slots for each injection link
-        self.topology.vp["injectionFlows"] = self.topology.new_vp("object") # list of flows for each injection link
+            self.topology.ep.slot_num[e] = 0
+            self.topology.ep.pairs[e] = list()
+        self.topology.vp["injection_slot_num"] = self.topology.new_vp("short") # number of slots for each injection link
+        self.topology.vp["injection_pairs"] = self.topology.new_vp("object") # list of pairs for each injection link
         for v in self.topology.vertices():
-            self.topology.vp.injectionSlotNum[v] = 0
-            self.topology.vp.injectionFlows[v] = list()
+            self.topology.vp.injection_slot_num[v] = 0
+            self.topology.vp.injection_pairs[v] = list()
         
         # create st-path list
         self.st_path_table = [[[] for _ in range(0, verticesNum)] for _ in range(0, verticesNum)]
@@ -192,8 +194,31 @@ class BoardAllocator:
             vNode_list.append(VNode(vNode_id, send_pair_list, recv_pair_list))
         self.allocating_vNode_list += vNode_list
 
+        # set Pair.src_vNode or Pair.dst_vNode
+        for pair in pair_list:
+            for vNode in vNode_list:
+                if pair.src == vNode.vNode_id:
+                    pair.src_vNode = vNode
+                elif pair.dst == vNode.vNode_id:
+                    pair.dst_vNode = vNode
+
         # make App
         self.allocating_app_list.append(App(self.generate_app_id(), vNode_list, pair_list, communicationFile))
+
+    ##---------------------------------------------------------
+    def random_single_pair_allocation(self, pair):
+        # pick up src and dst rNode_id
+        src = pair.src_vNode.rNode_id
+        dst = pair.dst_vNode.rNode_id
+
+        # pick up a path
+        path = random.choice(self.st_path_table[src][dst])
+
+        # update injection properties
+        for exist_pair in self.topology.vp.injection_pairs:
+            
+
+        # update edge properties
 
     ##---------------------------------------------------------
     def random_single_node_allocation(self, vNode):
@@ -206,8 +231,14 @@ class BoardAllocator:
         vNode.rNode_id = map_rNode_id
 
         # temporary send-path allocation (if dst node is not allocated, the operation is not executed)
-        #for dst_rNode
-
+        for send_pair in vNode.send_pair_list:
+            if send_pair.dst_vNode.rNode_id != None:
+                random_single_pair_allocation(send_pair)
+        
+        # temporary recv-path allocation (if src node is not allocated, the operation is not executed)
+        for recv_pair in vNode.recv_pair_list:
+            if recv_pair.src_vNode.rNode_id != None:
+                random_single_pair_allocation(recv_pair)
 
     ##---------------------------------------------------------
     def alns(self, max_execution_time):
