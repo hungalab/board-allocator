@@ -9,7 +9,7 @@ from collections import OrderedDict
 import time
 import random
 
-import graph_tool.all as gt
+import networkx as nx
 
 #--------------------------------------------------------------
 class App:
@@ -56,18 +56,16 @@ class AllocatorUnit:
         ## manage the real node
         self.temp_allocated_rNode_dict = dict() # 1D dict: the dict of rNodes' id that is temporary allocated
         self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+        ## shortest path list
+        self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
 
-        # create properties
-        self.topology.ep["slot_num"] = self.topology.new_ep("short") # number of slots for each edge
-        self.topology.ep["pairs"] = self.topology.new_ep("object") # set of pairs' id for each edge
-        for e in self.topology.edges():
-            self.topology.ep.slot_num[e] = 0
-            self.topology.ep.pairs[e] = set()
-        self.topology.vp["injection_slot_num"] = self.topology.new_vp("short") # number of slots for each injection link
-        self.topology.vp["injection_pairs"] = self.topology.new_vp("object") # set of pairs' id for each injection link
-        for v in self.topology.vertices():
-            self.topology.vp.injection_slot_num[v] = 0
-            self.topology.vp.injection_pairs[v] = set()
+        # create st-path list
+        node_num = nx.number_of_nodes(self.topology)
+        self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
+        for src in range(0, node_num):
+            for dst in range(0, node_num):
+                for paths in nx.all_shortest_paths(self.topology, src, dst):
+                    self.st_path_table[src][dst].append(paths)
     
     ##---------------------------------------------------------
     def add_app(self, app, vNode_list, pair_list):

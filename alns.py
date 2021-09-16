@@ -9,7 +9,7 @@ import collections
 from collections import OrderedDict
 import time
 
-import graph_tool.all as gt
+import networkx as nx
 
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode
@@ -25,20 +25,19 @@ def random_single_pair_allocation(au, pair_id):
     path = random.choice(au.st_path_table[src][dst])
 
     # update injection properties
-    exist_flow_set = {au.pair_dict[exist_pair_id].flow_id for exist_pair_id in au.topology.vp.injection_pairs[src]}
+    exist_flow_set = {au.pair_dict[exist_pair_id].flow_id for exist_pair_id in au.topology.nodes[src]['injection_pairs']}
     if pair.flow_id not in exist_flow_set:
-        au.topology.vp.injection_slot_num[src] += 1
-    au.topology.vp.injection_pairs[src].add(pair.pair_id)
+        au.topology.nodes[src]['injection_slot_num'] += 1
+    au.topology.nodes[src]['injection_pairs'].add(pair.pair_id)
 
     # update edge properties
     source = path[0]
     for i in range(len(path) - 1):
         target = path[i + 1]
-        e = au.topology.edge(source, target)
-        exist_flow_set = {au.pair_dict[exist_pair_id].flow_id for exist_pair_id in au.topology.ep.pairs[e]}
+        exist_flow_set = {au.pair_dict[exist_pair_id].flow_id for exist_pair_id in au.topology.edges[source, target]['pairs']}
         if pair.flow_id not in exist_flow_set:
-            au.topology.ep.slot_num[e] += 1
-        au.topology.ep.pairs[e].add(pair.pair_id)
+            au.topology.edges[source, target]['slot_num'] += 1
+        au.topology.edges[source, target]['pairs'].add(pair.pair_id)
 
 #--------------------------------------------------------------
 def random_single_node_allocation(au, vNode_id):
@@ -63,7 +62,7 @@ def random_single_node_allocation(au, vNode_id):
 #--------------------------------------------------------------
 def generate_initial_solution(au):
     # initialize au.empty_rNode_list
-    au.empty_rNode_list = au.topology.get_vertices().tolist()
+    au.empty_rNode_list = list(range(nx.number_of_nodes(au.topology)))
     for vNode_id in au.running_vNode_id_list:
         rNode_id = au.vNode_dict[vNode_id].rNode_id
         if rNode_id != None:

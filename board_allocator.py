@@ -9,7 +9,7 @@ import collections
 from collections import OrderedDict
 import time
 
-import graph_tool.all as gt
+import networkx as nx
 
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode
@@ -41,8 +41,6 @@ class BoardAllocator:
         ## virtualization of the topology file
         self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
         self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
-        ## shortest path list
-        self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
         ## id generators
         self.__vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self.__pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
@@ -50,7 +48,7 @@ class BoardAllocator:
         self.__app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
 
         # make topology
-        topology = gt.Graph()
+        topology = nx.DiGraph()
 
         # read topology file
         topo_tmp = np.loadtxt(topologyFile, dtype='int').tolist()
@@ -58,8 +56,8 @@ class BoardAllocator:
         # add nodes
         list_tmp = list(r[0] for r in topo_tmp) + list(r[2] for r in topo_tmp)
         list_tmp = list(set(list_tmp))
-        verticesNum = len(list_tmp) # number of vertices
-        topology.add_vertex(verticesNum)
+        verticesNum = len(list_tmp) # number of nodes
+        topology.add_nodes_from(range(verticesNum), injection_slot_num = 0, injection_pairs = set())
 
         # make node's dictionaries
         for i, label in enumerate(list_tmp):
@@ -68,15 +66,8 @@ class BoardAllocator:
 
         # make bi-directional edges
         for e in topo_tmp:
-            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]])
-            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
-
-        # create st-path list
-        self.st_path_table = [[[] for _ in range(0, verticesNum)] for _ in range(0, verticesNum)]
-        for src in range(0, verticesNum):
-            for dst in range(0, verticesNum):
-                for paths in gt.all_shortest_paths(topology, src, dst):
-                    self.st_path_table[src][dst].append(paths.tolist())
+            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]], slot_num = 0, pairs = set())
+            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]], slot_num = 0, pairs = set())
         
         # make allocatorunit
         self.au = AllocatorUnit(topology)
