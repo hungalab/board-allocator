@@ -88,10 +88,10 @@ class BoardAllocator:
         ## shortest path list
         self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
         ## id generators
-        self._vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
-        self._pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
-        self._flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
-        self._app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
+        self.__vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
+        self.__pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
+        self.__flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
+        self.__app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
 
         # make topology
         topology = gt.Graph()
@@ -131,33 +131,33 @@ class BoardAllocator:
     # genaration of vNode_id: it is used only when you create a new VNode
     ##---------------------------------------------------------
     def generate_vNode_id(self):
-        givenId = self._vNode_id
-        self._vNode_id += 1
+        givenId = self.__vNode_id
+        self.__vNode_id += 1
         return givenId
     
     # genaration of pair_id: it is used only when you create a new Pair
     ##---------------------------------------------------------
     def generate_pair_id(self):
-        givenId = self._pair_id
-        self._pair_id += 1
+        givenId = self.__pair_id
+        self.__pair_id += 1
         return givenId
 
     # genaration of flow_id: it is used only when you find a new flow label
     ##---------------------------------------------------------
     def generate_flow_id(self):
-        givenId = self._flow_id
-        self._flow_id += 1
+        givenId = self.__flow_id
+        self.__flow_id += 1
         return givenId
     
     # genaration of app_id: it is used only when you create a new App
     ##---------------------------------------------------------
     def generate_app_id(self):
-        givenId = self._app_id
-        self._app_id += 1
+        givenId = self.__app_id
+        self.__app_id += 1
         return givenId
 
     ##---------------------------------------------------------
-    def loadApp(self, communicationFile):
+    def load_app(self, communicationFile):
         # read communication file
         comm_tmp = np.loadtxt(communicationFile, dtype='int').tolist()
 
@@ -198,6 +198,9 @@ class BoardAllocator:
         # make App
         app = App(self.generate_app_id(), vNode_list, pair_list, communicationFile)
         self.au.add_app(app, vNode_list, pair_list)
+    
+    ##---------------------------------------------------------
+    def run_optimization(self, execution_time):
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
