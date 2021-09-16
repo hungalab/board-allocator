@@ -33,50 +33,6 @@ def parser():
     return args
 
 #--------------------------------------------------------------
-class App:
-    def __init__(self, app_id, vNode_list, pair_list, communicationFile):
-        self.app_id = app_id
-        self.vNode_list = vNode_list # list: list of vNode of the App
-        self.pair_list = pair_list # list: list of pair of the App
-        self.communicationFile = communicationFile
-
-#--------------------------------------------------------------
-class Pair:
-    def __init__(self, pair_id, src, dst, flow_id):
-        self.pair_id = pair_id
-        self.src = src
-        self.src_vNode = None
-        self.dst = dst
-        self.dst_vNode = None
-        self.flow_id = flow_id
-        self.path_id = None # using path list
-
-#--------------------------------------------------------------
-class VNode:
-    def __init__(self, vNode_id, send_pair_list, recv_pair_list):
-        self.vNode_id = vNode_id # int: virtualized node ID
-        self.send_pair_list = send_pair_list # list: list of pair to be sent by this VNode
-        self.recv_pair_list = recv_pair_list # list: list of pair to be recieved by this VNode
-        self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated (including tmporary), the value is None
-
-#--------------------------------------------------------------
-class AllocatorUnit:
-    def __init__(self):
-        ## topology
-        self.topology = gt.Graph() # the topology for this allocator
-        ## allocating object lists
-        self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
-        self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
-        self.allocating_app_list = list() # 1D list: the list of Apps that are being allocated
-        ## runnning (allocated) object list
-        self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
-        self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
-        self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
-        ## manage the real node
-        self.temp_allocated_rNode_list = list() # 1D list: the list of rNodes that is temporary allocated
-        self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_list)
-
-#--------------------------------------------------------------
 class BoardAllocator:
     def __init__(self, topologyFile):
         # define variable
@@ -179,32 +135,26 @@ class BoardAllocator:
         vNode_list = list()
         vNode_id_list = [label2vNode_id[elm] for elm in vNode_label_list]
         for vNode_id in vNode_id_list:
-            send_pair_list, recv_pair_list = list(), list()
+            send_pair_id_list, recv_pair_id_list = list(), list()
             for pair in pair_list:
-                if pair.src == vNode_id:
-                    send_pair_list.append(pair)
-                elif pair.dst == vNode_id:
-                    recv_pair_list.append(pair)
-            vNode_list.append(VNode(vNode_id, send_pair_list, recv_pair_list))
-
-        # set Pair.src_vNode or Pair.dst_vNode
-        for pair in pair_list:
-            for vNode in vNode_list:
-                if pair.src == vNode.vNode_id:
-                    pair.src_vNode = vNode
-                elif pair.dst == vNode.vNode_id:
-                    pair.dst_vNode = vNode
+                if pair.src_vNode_id == vNode_id:
+                    send_pair_id_list.append(pair.pair_id)
+                elif pair.dst_vNode_id == vNode_id:
+                    recv_pair_id_list.append(pair.pair_id)
+            vNode_list.append(VNode(vNode_id, send_pair_id_list, recv_pair_id_list))
 
         # make App
-        app = App(self.generate_app_id(), vNode_list, pair_list, communicationFile)
+        pair_id_list = [pair.pair_id for pair in pair_list]
+        app = App(self.generate_app_id(), vNode_id_list, pair_id_list, communicationFile)
         self.au.add_app(app, vNode_list, pair_list)
     
     ##---------------------------------------------------------
-    def run_optimization(self, execution_time):
+    #def run_optimization(self, execution_time):
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
+    actor.au.print_au()
     print(" ### OVER ### ")

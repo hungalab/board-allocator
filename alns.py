@@ -14,7 +14,7 @@ import graph_tool.all as gt
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 def random_single_pair_allocation(au, pair_id):
     # pick up src and dst rNode_id
     pair = au.pair_dict[pair_id]
@@ -40,7 +40,7 @@ def random_single_pair_allocation(au, pair_id):
             au.topology.ep.slot_num[e] += 1
         au.topology.ep.pairs[e].add(pair.pair_id)
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 def random_single_node_allocation(au, vNode_id):
     # pick up an empty rNove
     map_rNode_id = random.choice(au.empty_rNode_list)
@@ -60,7 +60,7 @@ def random_single_node_allocation(au, vNode_id):
         if au.pair_dict[recv_pair_id].src_vNode.rNode_id != None:
             random_single_pair_allocation(au, recv_pair_id)
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 def generate_initial_solution(au):
     # initialize au.empty_rNode_list
     au.empty_rNode_list = au.topology.get_vertices().tolist()
@@ -73,7 +73,7 @@ def generate_initial_solution(au):
     for vNode_id for au.allocating_vNode_id_list:
         random_single_node_allocation(au, vNode_id)
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 def alns(au, max_execution_time):
     p_break_path = len(au.allocating_pair_id_list) # probability of executing break_path()
     p_node_swap = len(au.allocating_vNode_id_list) # probability of executing node_swap()

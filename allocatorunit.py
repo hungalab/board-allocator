@@ -86,28 +86,28 @@ class AllocatorUnit:
             self.allocating_pair_id_list.append(pair.pair_id)
 
     ##---------------------------------------------------------
-    def print_allocating_app(self):
+    def print_au(self):
         print(" ##### App ##### ")
-        all_app_list = list(self.running_app_list.values()) + list(self.allocating_app_list.values())
+        all_app_list = list(self.app_dict.values())
         for app in all_app_list:
             print("app_id: {}".format(app.app_id))
-            print("vNode_id_list: {}".format([vNode.vNode_id for vNode in app.vNode_list]))
-            print("pair_id_list: {}".format([pair.pair_id for pair in app.pair_list]))
+            print("vNode_id_list: {}".format(app.vNode_id_list))
+            print("pair_id_list: {}".format(app.pair_id_list))
             print(" --------------------------------------------------- ")
 
         print("\n ##### vNode ##### ")
-        all_vNode_list = list(self.running_vNode_list.values()) + list(self.allocating_vNode_list.values())
+        all_vNode_list = list(self.vNode_dict.values())
         for vNode in all_vNode_list:
             print("vNode_id: {}".format(vNode.vNode_id))
-            print("send_pair_id_list: {}".format([send_pair.pair_id for send_pair in vNode.send_pair_list]))
-            print("recv_pair_id_list: {}".format([recv_pair.pair_id for recv_pair in vNode.recv_pair_list]))
+            print("send_pair_id_list: {}".format(vNode.send_pair_id_list))
+            print("recv_pair_id_list: {}".format(vNode.recv_pair_id_list))
             print(" --------------------------------------------------- ")
         
         print("\n ##### Pair ##### ")
-        all_pair_list = list(self.running_pair_list.values()) + list(self.allocating_pair_list.values())
+        all_pair_list = list(self.pair_dict.values())
         for pair in all_pair_list:
             print("pair_id: {}".format(pair.pair_id))
-            print("src: {}".format(pair.src))
-            print("dst: {}".format(pair.dst))
+            print("src: {}".format(pair.src_vNode_id))
+            print("dst: {}".format(pair.dst_vNode_id))
             print("flow_id: {}".format(pair.flow_id))
             print(" --------------------------------------------------- ")
