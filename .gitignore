@@ -9,5 +9,6 @@ output/
 *.txt
 !fic-topo-file-cross.txt
 test.png
+*.pickle
 
 __pycache__

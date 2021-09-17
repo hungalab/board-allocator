@@ -8,17 +8,22 @@ import numpy as np
 import collections
 from collections import OrderedDict
 import time
+import pickle
 
 import networkx as nx
 
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode
+import alns
 
 ##---------------------------------------------------------
 def parser():
     parser = argparse.ArgumentParser(description='board allocator')
     parser.add_argument('-t', help='topology file', default='fic-topo-file-cross.txt')
     parser.add_argument('-c', help='communication partern (traffic file)', required=True)
+    parser.add_argument('-s', help='', default=0, type=int)
+    parser.add_argument('-m', help='', default=0, type=int)
+    parser.add_argument('-ho', help='', default=0, type=int)
 
     args = parser.parse_args()
 
@@ -29,6 +34,10 @@ def parser():
     if not os.path.isfile(args.c):
         print("Error: {0:s} was not found.".format(args.c), sys.stderr)
         sys.exit(2)
+    
+    if (args.s + args.m + args.ho <= 0):
+        print("Error: Total execution time must be greater than 0 second.".format(args.c), sys.stderr)
+        sys.exit(3)
     
     return args
 
@@ -140,12 +149,13 @@ class BoardAllocator:
         self.au.add_app(app, vNode_list, pair_list)
     
     ##---------------------------------------------------------
-    #def run_optimization(self, execution_time):
+    def run_optimization(self, max_execution_time):
+        alns.alns(self.au, max_execution_time)
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.au.print_au()
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho)
     print(" ### OVER ### ")

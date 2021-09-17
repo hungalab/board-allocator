@@ -8,8 +8,10 @@ import collections
 from collections import OrderedDict
 import time
 import random
+import pickle
 
 import networkx as nx
+
 
 #--------------------------------------------------------------
 class App:
@@ -26,7 +28,7 @@ class Pair:
         self.src_vNode_id = src
         self.dst_vNode_id = dst
         self.flow_id = flow_id
-        self.path_id = None # using path list
+        self.path = None # using path list
 
 #--------------------------------------------------------------
 class VNode:
@@ -54,7 +56,7 @@ class AllocatorUnit:
         self.running_pair_id_list = list() # 1D list: the list of pairs' id that are runnning (allocation is finished)
         self.running_app_id_list = list() # 1D list: the list of Apps' id that are runnning (allocation is finished)
         ## manage the real node
-        self.temp_allocated_rNode_dict = dict() # 1D dict: the dict of rNodes' id that is temporary allocated
+        self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
         self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
         ## shortest path list
         self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
@@ -66,7 +68,7 @@ class AllocatorUnit:
             for dst in range(0, node_num):
                 for paths in nx.all_shortest_paths(self.topology, src, dst):
                     self.st_path_table[src][dst].append(paths)
-    
+
     ##---------------------------------------------------------
     def add_app(self, app, vNode_list, pair_list):
         # add app
@@ -82,6 +84,30 @@ class AllocatorUnit:
         for pair in pair_list:
             self.pair_dict[pair.pair_id] = pair
             self.allocating_pair_id_list.append(pair.pair_id)
+    
+    ##---------------------------------------------------------
+    def get_slot_num(self):
+        injection_max = max(nx.get_node_attributes(self.topology, 'injection_slot_num').values())
+        edge_max = max(nx.get_edge_attributes(self.topology, 'slot_num').values())
+        return max(injection_max, edge_max)
+    
+    ##---------------------------------------------------------
+    def save_au(self, file_name=None, protocol=pickle.HIGHEST_PROTOCOL):
+        if file_name == None:
+            return pickle.dumps(self, protocol)
+        else:
+            with open(file_name, 'wb') as f:
+                pickle.dump(self, f, protocol)
+    
+    ##---------------------------------------------------------
+    @classmethod
+    def load_au(cls, obj=None, file_name=None):
+        if (obj != None) and (file_name == None):
+            return pickle.loads(obj)
+        elif (obj == None) and (file_name != None):
+            with open(file_name, 'rb') as f:
+                data = pickle.load(f)
+            return data
 
     ##---------------------------------------------------------
     def print_au(self):
