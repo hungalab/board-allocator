@@ -28,21 +28,19 @@ def random_pair_allocation(au, pair_id):
     pair.path = path
 
     # update injection attributes
+    au.topology.nodes[src]['injection_pairs'].add(pair.pair_id)
     exist_flow_set = {au.pair_dict[exist_pair_id].flow_id \
                       for exist_pair_id in au.topology.nodes[src]['injection_pairs']}
-    if pair.flow_id not in exist_flow_set:
-        au.topology.nodes[src]['injection_slot_num'] += 1
-    au.topology.nodes[src]['injection_pairs'].add(pair.pair_id)
+    au.topology.nodes[src]['injection_slot_num'] = len(exist_flow_set)
 
     # update edge attributes
     source = path[0]
     for i in range(len(path) - 1):
         target = path[i + 1]
+        au.topology.edges[source, target]['pairs'].add(pair.pair_id)
         exist_flow_set = {au.pair_dict[exist_pair_id].flow_id \
                           for exist_pair_id in au.topology.edges[source, target]['pairs']}
-        if pair.flow_id not in exist_flow_set:
-            au.topology.edges[source, target]['slot_num'] += 1
-        au.topology.edges[source, target]['pairs'].add(pair.pair_id)
+        au.topology.edges[source, target]['slot_num'] = len(exist_flow_set)
         source = target
 
 #--------------------------------------------------------------
@@ -57,8 +55,7 @@ def pair_deallocation(au, pair_id):
     au.topology.nodes[source]['injection_pairs'].remove(pair.pair_id)
     rest_flow_set = {au.pair_dict[rest_pair_id].flow_id \
                      for rest_pair_id in au.topology.nodes[source]['injection_pairs']}
-    if pair.flow_id not in rest_flow_set:
-        au.topology.nodes[source]['injection_slot_num'] -= 1
+    au.topology.nodes[source]['injection_slot_num'] = len(rest_flow_set)
     
     # update edge attributes
     for i in range(len(path) - 1):
@@ -66,9 +63,8 @@ def pair_deallocation(au, pair_id):
         au.topology.edges[source, target]['pairs'].remove(pair.pair_id)
         rest_flow_set = {au.pair_dict[rest_pair_id].flow_id \
                          for rest_pair_id in au.topology.edges[source, target]['pairs']}
-        if pair.flow_id not in rest_flow_set:
-            au.topology.edges[source, target]['slot_num'] -= 1
-        source =target
+        au.topology.edges[source, target]['slot_num'] = len(rest_flow_set)
+        source = target
 
 #--------------------------------------------------------------
 def random_node_allocation(au, vNode_id):
@@ -186,6 +182,8 @@ def alns(au, max_execution_time):
 
     loops = 0
     mid_results = list()
+    cnt_slot_change = 0
+    cnt_total_slot_change = 0
 
     start_time = time.time()
 
@@ -193,6 +191,8 @@ def alns(au, max_execution_time):
     generate_initial_solution(au)
     best = au.save_au()
     best_slot_num = au.get_slot_num()
+    best_total_slot_num = au.get_total_slot_num()
+    print("number of slots: {}".format(best_slot_num))
 
     while True:
         loops += 1
@@ -205,19 +205,29 @@ def alns(au, max_execution_time):
 
         # evaluation
         slot_num = au.get_slot_num()
+        total_slot_num = au.get_total_slot_num()
         if slot_num < best_slot_num:
             best = au.save_au()
             best_slot_num = slot_num
+            best_total_slot_num = total_slot_num
+            cnt_slot_change += 1
+        elif (slot_num == best_slot_num) and (total_slot_num < best_total_slot_num):
+            best = au.save_au()
+            best_slot_num = slot_num
+            best_total_slot_num = total_slot_num
+            cnt_total_slot_change += 1
         else:
             au = AllocatorUnit.load_au(obj=best)
         
-        mid_results.append(best)
-        
+        #mid_results.append(best)
         
         # if time is up, break the loop
         if time.time() - start_time >= max_execution_time:
             print("number of loops: {}".format(loops))
             print("number of slots: {}".format(best_slot_num))
-            with open('result.pickle', 'wb') as f:
-                pickle.dump(mid_results, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print("number of update for slot decrease: {}".format(cnt_slot_change))
+            print("number of update for total slot decrease: {}".format(cnt_total_slot_change))
+            print("allocated rNode_id: {}".format(au.temp_allocated_rNode_dict))
+            #with open('result.pickle', 'wb') as f:
+            #    pickle.dump(mid_results, f, protocol=pickle.HIGHEST_PROTOCOL)
             break

@@ -92,6 +92,10 @@ class AllocatorUnit:
         return max(injection_max, edge_max)
     
     ##---------------------------------------------------------
+    def get_total_slot_num(self):
+        return sum(nx.get_edge_attributes(self.topology, 'slot_num').values())
+    
+    ##---------------------------------------------------------
     def save_au(self, file_name=None, protocol=pickle.HIGHEST_PROTOCOL):
         if file_name == None:
             return pickle.dumps(self, protocol)

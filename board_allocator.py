@@ -66,7 +66,7 @@ class BoardAllocator:
         list_tmp = list(r[0] for r in topo_tmp) + list(r[2] for r in topo_tmp)
         list_tmp = list(set(list_tmp))
         verticesNum = len(list_tmp) # number of nodes
-        topology.add_nodes_from(range(verticesNum), injection_slot_num = 0, injection_pairs = set())
+        topology.add_nodes_from([(i, {'injection_slot_num': 0, 'injection_pairs': set()}) for i in range(verticesNum)])
 
         # make node's dictionaries
         for i, label in enumerate(list_tmp):
