@@ -53,7 +53,6 @@ class Cross_Paths:
         self.pair_index = list()
         self.flow_index = list()
         self.assigned_list = list()
-        self.assigned_dst_list = list()
         self.Valid = False
         self.routing_table = list()
 
@@ -291,6 +290,7 @@ class cstgen:
                 elm = tmp_max_cp_elm
             path_ct = 0
             while path_ct < len(elm.flow_index):
+                # if this flow is assigned, then execute "continue", else go next step
                 t = elm.flow_index[path_ct]
                 valid = True
                 for i in self.flows[t].pairs_id:
@@ -304,7 +304,7 @@ class cstgen:
                 id_tmp = 0
                 NG_ID = False
 
-                #NEXT_ID_FLOW
+                #NEXT_ID_FLOW (determine id of this flow)
                 while True:
                     s_ct = 0
                     while (s_ct < len(self.flows[t].channels)) and (not NG_ID):
@@ -324,20 +324,23 @@ class cstgen:
                         break
 
                 self.flows[t].ID = id_tmp
+
+                # if the id is greater than ID_max, update ID_max
                 if id_tmp > ID_max:
                     ID_max = id_tmp
                 
+                # Crossing_Paths recod id_tmp to assigned_list of Crossing_paths that include this flow
                 a_ct = 0
                 while a_ct < len(self.flows[t].channels):
                     tmp_j = self.flows[t].channels[a_ct]
                     self.Crossing_Paths[tmp_j].assigned_list.append(id_tmp)
-                    t = elm.flow_index[path_ct]
-                    for n in self.flows[t].pairs_id:
-                        self.Crossing_Paths[tmp_j].assigned_dst_list.append(self.pairs[n].h_dst)
                     a_ct += 1
                 
+                # set Valid of this flow's pairs to true
                 for n in self.flows[t].pairs_id:
                     self.pairs[n].Valid = True
+
+                # if the assigned id is greater than or equal to max_id, update max_id
                 if self.max_id <= id_tmp:
                     self.max_id = id_tmp + 1
                 

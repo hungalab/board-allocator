@@ -81,9 +81,6 @@ class BoardAllocator:
         # make allocatorunit
         self.au = AllocatorUnit(topology)
 
-        # draw the graph
-        #gt.graph_draw(topology, vertex_text = topology.vertex_index, output="test.png")
-    
     # genaration of vNode_id: it is used only when you create a new VNode
     ##---------------------------------------------------------
     def generate_vNode_id(self):
