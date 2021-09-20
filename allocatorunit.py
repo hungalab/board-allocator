@@ -15,27 +15,29 @@ import networkx as nx
 
 #--------------------------------------------------------------
 class App:
-    def __init__(self, app_id, vNode_id_list, pair_id_list, communicationFile):
+    def __init__(self, app_id, vNode_list, pair_list, communicationFile):
         self.app_id = app_id
-        self.vNode_id_list = vNode_id_list # list: list of vNode_id of the App
-        self.pair_id_list = pair_id_list # list: list of pair_id of the App
+        self.vNode_list = vNode_list # list: list of vNode of the App
+        self.pair_list = pair_list # list: list of pair of the App
         self.communicationFile = communicationFile
 
 #--------------------------------------------------------------
 class Pair:
     def __init__(self, pair_id, src, dst, flow_id):
         self.pair_id = pair_id
-        self.src_vNode_id = src
-        self.dst_vNode_id = dst
+        self.src = src
+        self.dst = dst
+        self.src_vNode = None
+        self.dst_vNode = None
         self.flow_id = flow_id
         self.path = None # using path list
 
 #--------------------------------------------------------------
 class VNode:
-    def __init__(self, vNode_id, send_pair_id_list, recv_pair_id_list):
+    def __init__(self, vNode_id, send_pair_list, recv_pair_list):
         self.vNode_id = vNode_id # int: virtualized node ID
-        self.send_pair_id_list = send_pair_id_list # list: list of pair_id to be sent by this VNode
-        self.recv_pair_id_list = recv_pair_id_list # list: list of pair_id to be recieved by this VNode
+        self.send_pair_list = send_pair_list # list: list of pair to be sent by this VNode
+        self.recv_pair_list = recv_pair_list # list: list of pair to be recieved by this VNode
         self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated (including tmporary), the value is None
 
 #--------------------------------------------------------------
@@ -48,13 +50,13 @@ class AllocatorUnit:
         self.pair_dict = dict()
         self.app_dict = dict()
         ## allocating object lists
-        self.allocating_vNode_id_list = list() # 1D list: the list of VNodes' id that are being allocated
-        self.allocating_pair_id_list = list() # 1D list: the list of pairs' id that are being allocated
-        self.allocating_app_id_list = list() # 1D list: the list of Apps' id that are being allocated
+        self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
+        self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
+        self.allocating_app_list = list() # 1D list: the list of Apps that are being allocated
         ## runnning (allocated) object list
-        self.running_vNode_id_list = list() # 1D list: the list of VNodes' id that are runnning (allocation is finished)
-        self.running_pair_id_list = list() # 1D list: the list of pairs' id that are runnning (allocation is finished)
-        self.running_app_id_list = list() # 1D list: the list of Apps' id that are runnning (allocation is finished)
+        self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
+        self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
+        self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
         ## manage the real node
         self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
         self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
@@ -73,17 +75,17 @@ class AllocatorUnit:
     def add_app(self, app, vNode_list, pair_list):
         # add app
         self.app_dict[app.app_id] = app
-        self.allocating_app_id_list.append(app.app_id)
+        self.allocating_app_list.append(app)
 
         # add vNodes
         for vNode in vNode_list:
             self.vNode_dict[vNode.vNode_id] = vNode
-            self.allocating_vNode_id_list.append(vNode.vNode_id)
+            self.allocating_vNode_list.append(vNode)
         
         # add pairs
         for pair in pair_list:
             self.pair_dict[pair.pair_id] = pair
-            self.allocating_pair_id_list.append(pair.pair_id)
+            self.allocating_pair_list.append(pair)
     
     ##---------------------------------------------------------
     def get_slot_num(self):
@@ -119,23 +121,23 @@ class AllocatorUnit:
         all_app_list = list(self.app_dict.values())
         for app in all_app_list:
             print("app_id: {}".format(app.app_id))
-            print("vNode_id_list: {}".format(app.vNode_id_list))
-            print("pair_id_list: {}".format(app.pair_id_list))
+            print("vNode_id_list: {}".format([vNode.vNode_id for vNode in app.vNode_list]))
+            print("pair_id_list: {}".format([pair.pair_id for pair in app.pair_list]))
             print(" --------------------------------------------------- ")
 
         print("\n ##### vNode ##### ")
         all_vNode_list = list(self.vNode_dict.values())
         for vNode in all_vNode_list:
             print("vNode_id: {}".format(vNode.vNode_id))
-            print("send_pair_id_list: {}".format(vNode.send_pair_id_list))
-            print("recv_pair_id_list: {}".format(vNode.recv_pair_id_list))
+            print("send_pair_id_list: {}".format([pair.pair_id for pair in vNode.send_pair_list]))
+            print("recv_pair_id_list: {}".format([pair.pair_id for pair in vNode.recv_pair_list]))
             print(" --------------------------------------------------- ")
         
         print("\n ##### Pair ##### ")
         all_pair_list = list(self.pair_dict.values())
         for pair in all_pair_list:
             print("pair_id: {}".format(pair.pair_id))
-            print("src: {}".format(pair.src_vNode_id))
-            print("dst: {}".format(pair.dst_vNode_id))
+            print("src: {}".format(pair.src_vNode.vNode_id))
+            print("dst: {}".format(pair.dst_vNode.vNode_id))
             print("flow_id: {}".format(pair.flow_id))
             print(" --------------------------------------------------- ")

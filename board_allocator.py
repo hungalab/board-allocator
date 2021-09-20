@@ -132,17 +132,24 @@ class BoardAllocator:
         vNode_list = list()
         vNode_id_list = [label2vNode_id[elm] for elm in vNode_label_list]
         for vNode_id in vNode_id_list:
-            send_pair_id_list, recv_pair_id_list = list(), list()
+            send_pair_list, recv_pair_list = list(), list()
             for pair in pair_list:
-                if pair.src_vNode_id == vNode_id:
-                    send_pair_id_list.append(pair.pair_id)
-                elif pair.dst_vNode_id == vNode_id:
-                    recv_pair_id_list.append(pair.pair_id)
-            vNode_list.append(VNode(vNode_id, send_pair_id_list, recv_pair_id_list))
+                if pair.src == vNode_id:
+                    send_pair_list.append(pair)
+                elif pair.dst == vNode_id:
+                    recv_pair_list.append(pair)
+            vNode_list.append(VNode(vNode_id, send_pair_list, recv_pair_list))
+        
+        # set Pair.src_vNode or Pair.dst_vNode
+        for pair in pair_list:
+            for vNode in vNode_list:
+                if pair.src == vNode.vNode_id:
+                    pair.src_vNode = vNode
+                elif pair.dst == vNode.vNode_id:
+                    pair.dst_vNode = vNode
 
         # make App
-        pair_id_list = [pair.pair_id for pair in pair_list]
-        app = App(self.generate_app_id(), vNode_id_list, pair_id_list, communicationFile)
+        app = App(self.generate_app_id(), vNode_list, pair_list, communicationFile)
         self.au.add_app(app, vNode_list, pair_list)
     
     ##---------------------------------------------------------
