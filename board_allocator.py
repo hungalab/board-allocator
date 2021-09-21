@@ -7,13 +7,11 @@ import shutil
 import numpy as np
 import collections
 from collections import OrderedDict
-import time
-import pickle
 
 import networkx as nx
 
 # my library
-from allocatorunit import AllocatorUnit, App, Pair, VNode
+from allocatorunit import AllocatorUnit, App, Pair, VNode, Flow
 import alns
 
 ##---------------------------------------------------------
@@ -66,7 +64,7 @@ class BoardAllocator:
         list_tmp = list(r[0] for r in topo_tmp) + list(r[2] for r in topo_tmp)
         list_tmp = list(set(list_tmp))
         verticesNum = len(list_tmp) # number of nodes
-        topology.add_nodes_from([(i, {'injection_slot_num': 0, 'injection_pairs': set()}) for i in range(verticesNum)])
+        topology.add_nodes_from(range(verticesNum))
 
         # make node's dictionaries
         for i, label in enumerate(list_tmp):
@@ -75,8 +73,8 @@ class BoardAllocator:
 
         # make bi-directional edges
         for e in topo_tmp:
-            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]], slot_num = 0, pairs = set())
-            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]], slot_num = 0, pairs = set())
+            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]])
+            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
         
         # make allocatorunit
         self.au = AllocatorUnit(topology)
@@ -124,9 +122,17 @@ class BoardAllocator:
 
         # convert label to id
         comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] for pair in comm_tmp]
+        flow_tmp = [[] for _ in label2flow_id]
+        for pair in comm_tmp:
+            flow_tmp[pair[2]].append((pair[0], pair[1]))
         
-        # make Pairs
-        pair_list = [Pair(self.generate_pair_id(), pair[0], pair[1], pair[2]) for pair in comm_tmp]
+        # make Flows and Pairs
+        pair_list = list()
+        flow_list = list()
+        for i, flow in enumerate(flow_tmp):
+            tmp_pair_list = [Pair(self.generate_pair_id(), pair[0], pair[1]) for pair in flow]
+            flow_list.append(Flow(i, tmp_pair_list))
+            pair_list += tmp_pair_list
 
         # make vNodes
         vNode_list = list()
@@ -149,8 +155,8 @@ class BoardAllocator:
                     pair.dst_vNode = vNode
 
         # make App
-        app = App(self.generate_app_id(), vNode_list, pair_list, communicationFile)
-        self.au.add_app(app, vNode_list, pair_list)
+        app = App(self.generate_app_id(), vNode_list, flow_list, pair_list, communicationFile)
+        self.au.add_app(app)
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time):
