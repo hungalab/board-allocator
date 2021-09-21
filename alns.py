@@ -107,13 +107,13 @@ def update_path(au):
     random_pair_allocation(au, selected_pair.pair_id)
 
 #--------------------------------------------------------------
-def update_all_paths_of_a_node(au):
+def update_all_paths_of_a_random_node(au):
     # select a temporary allocated rNode_id
     temp_allocated_rNode_list = list(au.temp_allocated_rNode_dict.keys())
     rNode_id = random.choice(temp_allocated_rNode_list)
 
     # deallocate the selected rNode_id
-    vNode_id = au.temp_allocated_rNode_dict[rNode_id0]
+    vNode_id = au.temp_allocated_rNode_dict[rNode_id]
     node_deallocation(au, vNode_id)
 
     # allocate vNode to rNode_id (replace vNode to same rNode)
@@ -173,7 +173,7 @@ def alns(au, max_execution_time):
 
         # execute break_path or node_swap
         if random.randrange(1) < p_break_path:
-            update_path(au)
+            update_all_paths_of_a_random_node(au)
         else:
             node_swap(au)
 
@@ -181,13 +181,13 @@ def alns(au, max_execution_time):
         slot_num = au.slot_allocation()
         total_hops = au.get_total_communication_hops()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease ({} -> {})".format(loops, best_slot_num, slot_num))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease ({} -> {})".format(loops, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
