@@ -155,13 +155,15 @@ class AllocatorUnit:
     
     ##---------------------------------------------------------
     @classmethod
-    def load_au(cls, obj=None, file_name=None):
-        if (obj != None) and (file_name == None):
-            return pickle.loads(obj)
-        elif (obj == None) and (file_name != None):
-            with open(file_name, 'rb') as f:
-                data = pickle.load(f)
-            return data
+    def load_au_from_obj(cls, obj):
+        return pickle.loads(obj)
+    
+    ##---------------------------------------------------------
+    @classmethod
+    def load_au_from_file(cls, file_name):
+        with open(file_name, 'rb') as f:
+            data = pickle.load(f)
+        return data
 
     ##---------------------------------------------------------
     def print_au(self):

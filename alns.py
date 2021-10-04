@@ -205,7 +205,7 @@ def alns(au, max_execution_time):
             best_total_hops = total_hops
             cnt_total_hops_change += 1
         else:
-            au = AllocatorUnit.load_au(obj=best)
+            au = AllocatorUnit.load_au_from_obj(best)
 
     # logs
     print("number of loops: {}".format(loops))
@@ -215,7 +215,7 @@ def alns(au, max_execution_time):
     for elm in updatelog:
         print(elm)
 
-    return AllocatorUnit.load_au(obj=best)
+    return AllocatorUnit.load_au_from_obj(best)
 
 #--------------------------------------------------------------
 def alns2(au, max_execution_time):
@@ -259,7 +259,7 @@ def alns2(au, max_execution_time):
             best_total_hops = total_hops
             cnt_total_hops_change += 1
         else:
-            au = AllocatorUnit.load_au(obj=best)
+            au = AllocatorUnit.load_au_from_obj(best)
 
     # logs
     print("number of loops: {}".format(loops))
@@ -269,4 +269,4 @@ def alns2(au, max_execution_time):
     for elm in updatelog:
         print(elm)
 
-    return AllocatorUnit.load_au(obj=best)
+    return AllocatorUnit.load_au_from_obj(best)
