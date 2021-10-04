@@ -166,14 +166,14 @@ def alns(au, max_execution_time):
     best = au.save_au()
     best_slot_num = au.slot_allocation()
     best_total_hops = au.get_total_communication_hops()
-    print("number of slots: {}".format(best_slot_num))
 
     while time.time() - start_time < max_execution_time:
         loops += 1
 
         # execute break_path or node_swap
-        if random.randrange(1) < p_break_path:
-            update_all_paths_of_a_random_node(au)
+        if random.randrange(p_range) < 1:
+            #update_all_paths_of_a_random_node(au)
+            node_swap(au)
         else:
             node_swap(au)
 
@@ -195,10 +195,12 @@ def alns(au, max_execution_time):
         else:
             au = AllocatorUnit.load_au(obj=best)
 
+    # logs
     print("number of loops: {}".format(loops))
-    print("number of slots: {}".format(best_slot_num))
     print("number of updates for slot decrease: {}".format(cnt_slot_change))
     print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
-    print("allocated rNode_id: {}".format(set(au.temp_allocated_rNode_dict.keys())))
+    print("allocated rNode_id: {}".format(au.temp_allocated_rNode_dict))
     for elm in updatelog:
         print(elm)
+
+    return AllocatorUnit.load_au(obj=best)

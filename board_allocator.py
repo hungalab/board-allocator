@@ -9,6 +9,7 @@ import collections
 from collections import OrderedDict
 
 import networkx as nx
+import matplotlib.pyplot as plt
 
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode, Flow
@@ -160,7 +161,24 @@ class BoardAllocator:
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time):
-        alns.alns(self.au, max_execution_time)
+        self.au = alns.alns(self.au, max_execution_time)
+    
+    ##---------------------------------------------------------
+    def print_result(self):
+        print("nunber of slots: {}".format(self.au.slot_allocation()))
+        node_num = nx.number_of_nodes(self.au.topology)
+        used_node = set(self.au.temp_allocated_rNode_dict.keys())
+        pos = {}
+        for i in range(node_num):
+            pos[i] = (i // 4, i % 4)
+        node_color = list()
+        for i in range(node_num):
+            if i in used_node:
+                node_color.append('red')
+            else:
+                node_color.append('cyan')
+        nx.draw_networkx(self.au.topology, pos, node_color=node_color)
+        plt.show()
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
@@ -168,4 +186,5 @@ if __name__ == '__main__':
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
     actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho)
+    actor.print_result()
     print(" ### OVER ### ")
