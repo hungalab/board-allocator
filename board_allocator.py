@@ -161,7 +161,7 @@ class BoardAllocator:
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time):
-        self.au = alns.alns(self.au, max_execution_time)
+        self.au = alns.alns2(self.au, max_execution_time)
     
     ##---------------------------------------------------------
     def print_result(self):
