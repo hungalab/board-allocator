@@ -61,7 +61,7 @@ class Slot:
 
 #--------------------------------------------------------------
 class AllocatorUnit:
-    def __init__(self, topology):
+    def __init__(self, topology=None):
         ## topology
         self.topology = topology # the topology for this allocator
         ## dictionaries (vNode, pair, app)
@@ -85,13 +85,47 @@ class AllocatorUnit:
         ## slot management
         self.slot_list = None # 1D list: the lists of Slot
 
-        # create st-path list
-        node_num = nx.number_of_nodes(self.topology)
-        self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
-        for src in range(0, node_num):
-            for dst in range(0, node_num):
-                for path in nx.all_shortest_paths(self.topology, src, dst):
-                    self.st_path_table[src][dst].append([path[0]] + path)
+        if (topology is None):
+            # create st-path list
+            node_num = nx.number_of_nodes(self.topology)
+            self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
+            for src in range(0, node_num):
+                for dst in range(0, node_num):
+                    for path in nx.all_shortest_paths(self.topology, src, dst):
+                        self.st_path_table[src][dst].append([path[0]] + path)
+    
+    ##---------------------------------------------------------
+    def setup(self, seed):
+        if isinstance(seed, AllocatorUnit):
+            base = pickle.loads(pickle.dumps(seed, pickle.HIGHEST_PROTOCOL))
+        elif isinstance(seed, bytes):
+            base = pickle.loads(seed)
+        elif isinstance(seed, str):
+            with open(seed, 'rb') as f:
+                base = pikcle.load(f)
+        else:
+            raise TypeError("setup() argument must be 'AllocationUnit', 'bytes', or 'str'.")
+        
+        self.topology = base.topology
+        self.vNode_dict = base.vNode_dict
+        self.flow_dict = base.flow_dict
+        self.pair_dict = base.pair_dict
+        self.app_dict = base.app_dict
+        ## allocating object lists
+        self.allocating_vNode_list = base.allocating_vNode_list
+        self.allocating_pair_list = base.allocating_pair_list
+        self.allocating_app_list = base.allocating_app_list
+        ## runnning (allocated) object list
+        self.running_vNode_list = base.running_vNode_list
+        self.running_pair_list = base.running_pair_list
+        self.running_app_list = base.running_app_list
+        ## manage the real node
+        self.temp_allocated_rNode_dict = base.temp_allocated_rNode_dict
+        self.empty_rNode_list = base.empty_rNode_list
+        ## shortest path list
+        self.st_path_table = base.st_path_table
+        ## slot management
+        self.slot_list = self.slot_list
 
     ##---------------------------------------------------------
     def add_app(self, app):
