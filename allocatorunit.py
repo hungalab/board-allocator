@@ -2,7 +2,6 @@ import pickle
 
 import networkx as nx
 
-
 #--------------------------------------------------------------
 class App:
     def __init__(self, app_id, vNode_list, flow_list, pair_list, communicationFile):
@@ -85,7 +84,7 @@ class AllocatorUnit:
         ## slot management
         self.slot_list = None # 1D list: the lists of Slot
 
-        if (topology is None):
+        if (topology is not None):
             # create st-path list
             node_num = nx.number_of_nodes(self.topology)
             self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
@@ -125,7 +124,7 @@ class AllocatorUnit:
         ## shortest path list
         self.st_path_table = base.st_path_table
         ## slot management
-        self.slot_list = self.slot_list
+        self.slot_list = base.slot_list
 
     ##---------------------------------------------------------
     def add_app(self, app):
