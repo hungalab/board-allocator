@@ -165,7 +165,7 @@ class BoardAllocator:
     
     ##---------------------------------------------------------
     def print_result(self):
-        print("nunber of slots: {}".format(self.au.slot_allocation()))
+        print("nunber of slots: {}".format(self.au.get_slot_num()))
         node_num = nx.number_of_nodes(self.au.topology)
         used_node = set(self.au.temp_allocated_rNode_dict.keys())
         pos = {}

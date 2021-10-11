@@ -1,3 +1,4 @@
+import sys, traceback
 import pickle
 
 import networkx as nx
@@ -60,31 +61,49 @@ class Slot:
 
 #--------------------------------------------------------------
 class AllocatorUnit:
-    def __init__(self, topology=None):
-        ## topology
-        self.topology = topology # the topology for this allocator
-        ## dictionaries (vNode, pair, app)
-        self.vNode_dict = dict()
-        self.flow_dict = dict()
-        self.pair_dict = dict()
-        self.app_dict = dict()
-        ## allocating object lists
-        self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
-        self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
-        self.allocating_app_list = list() # 1D list: the list of Apps that are being allocated
-        ## runnning (allocated) object list
-        self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
-        self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
-        self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
-        ## manage the real node
-        self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
-        self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
-        ## shortest path list
-        self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
-        ## slot management
-        self.slot_list = None # 1D list: the lists of Slot
+    def __init__(self, topology=None, seed=None):
+        '''
+        You can use this constructor in two ways.
 
-        if (topology is not None):
+        1) AllocatorUnit(topology=topology, seed=None)
+        Create a brand new AllocatorUnit.
+
+        2) AllocatorUnit(topology=None, seed=seed)
+        Create an allocator unit with some applications (already in place or to be allocated).
+        The 2nd argument "seed" can take 
+            i)   a bytes object in which AllocatorUnit has been serialized by pickle, 
+            ii)  a file in which the serialized bytes object has been saved by pickle, 
+            iii) or AllocatorUnit.
+
+        Note: AllocatorUnit(topology=topology, seed=seed) 
+        and AllocationUnit(topology=None, seed=None)
+        raise Error.
+        '''
+        if (topology is not None) and (seed is None):
+            ## topology
+            self.topology = topology # the topology for this allocator
+            ## dictionaries (vNode, pair, app)
+            self.vNode_dict = dict()
+            self.flow_dict = dict()
+            self.pair_dict = dict()
+            self.app_dict = dict()
+            ## allocating object lists
+            self.allocating_vNode_list = list() # 1D list: the list of VNodes that are being allocated
+            self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
+            self.allocating_app_list = list() # 1D list: the list of Apps that are being allocated
+            ## runnning (allocated) object list
+            self.running_vNode_list = list() # 1D list: the list of VNodes that are runnning (allocation is finished)
+            self.running_pair_list = list() # 1D list: the list of pairs that are runnning (allocation is finished)
+            self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
+            ## manage the real node
+            self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
+            self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            ## shortest path list
+            self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
+            ## slot management
+            self.slot_list = None # 1D list: the lists of Slot
+            self.slot_valid = False
+
             # create st-path list
             node_num = nx.number_of_nodes(self.topology)
             self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
@@ -92,42 +111,53 @@ class AllocatorUnit:
                 for dst in range(0, node_num):
                     for path in nx.all_shortest_paths(self.topology, src, dst):
                         self.st_path_table[src][dst].append([path[0]] + path)
-    
-    ##---------------------------------------------------------
-    def setup(self, seed):
-        if isinstance(seed, AllocatorUnit):
-            base = pickle.loads(pickle.dumps(seed, pickle.HIGHEST_PROTOCOL))
-        elif isinstance(seed, bytes):
-            base = pickle.loads(seed)
-        elif isinstance(seed, str):
-            with open(seed, 'rb') as f:
-                base = pikcle.load(f)
-        else:
-            raise TypeError("setup() argument must be 'AllocationUnit', 'bytes', or 'str'.")
         
-        self.topology = base.topology
-        self.vNode_dict = base.vNode_dict
-        self.flow_dict = base.flow_dict
-        self.pair_dict = base.pair_dict
-        self.app_dict = base.app_dict
-        ## allocating object lists
-        self.allocating_vNode_list = base.allocating_vNode_list
-        self.allocating_pair_list = base.allocating_pair_list
-        self.allocating_app_list = base.allocating_app_list
-        ## runnning (allocated) object list
-        self.running_vNode_list = base.running_vNode_list
-        self.running_pair_list = base.running_pair_list
-        self.running_app_list = base.running_app_list
-        ## manage the real node
-        self.temp_allocated_rNode_dict = base.temp_allocated_rNode_dict
-        self.empty_rNode_list = base.empty_rNode_list
-        ## shortest path list
-        self.st_path_table = base.st_path_table
-        ## slot management
-        self.slot_list = base.slot_list
+        elif (topology is None) and (seed is not None):
+            if isinstance(seed, AllocatorUnit):
+                base = copy.deepcopy(seed)
+            elif isinstance(seed, bytes):
+                base = pickle.loads(seed)
+            elif isinstance(seed, str):
+                with open(seed, 'rb') as f:
+                    base = pikcle.load(f)
+            else:
+                raise TypeError("The 2nd argument \"seed\" must be 'AllocationUnit', 'bytes', or 'str'.")
+
+            ## topology
+            self.topology = base.topology
+            ## dictionaries (vNode, pair, app)
+            self.vNode_dict = base.vNode_dict
+            self.flow_dict = base.flow_dict
+            self.pair_dict = base.pair_dict
+            self.app_dict = base.app_dict
+            ## allocating object lists
+            self.allocating_vNode_list = base.allocating_vNode_list
+            self.allocating_pair_list = base.allocating_pair_list
+            self.allocating_app_list = base.allocating_app_list
+            ## runnning (allocated) object list
+            self.running_vNode_list = base.running_vNode_list
+            self.running_pair_list = base.running_pair_list
+            self.running_app_list = base.running_app_list
+            ## manage the real node
+            self.temp_allocated_rNode_dict = base.temp_allocated_rNode_dict
+            self.empty_rNode_list = base.empty_rNode_list
+            ## shortest path list
+            self.st_path_table = base.st_path_table
+            ## slot management
+            self.slot_list = base.slot_list
+            self.slot_valid = base.slot_valid
+
+        else:
+            print("Error: Only one of the arguments of the AllocatorUnit constructor \
+            should be specified, and the other should be None.", sys.stderr)
+            sys.exit(4)
 
     ##---------------------------------------------------------
     def add_app(self, app):
+        # check whether the app can be mapped
+        if len(self.running_vNode_list) + len(app.vNode_list) > nx.number_of_nodes(self.topology):
+            return False
+
         # add app
         self.app_dict[app.app_id] = app
         self.allocating_app_list.append(app)
@@ -145,34 +175,43 @@ class AllocatorUnit:
         for pair in app.pair_list:
             self.pair_dict[pair.pair_id] = pair
             self.allocating_pair_list.append(pair)
+        
+        return True
     
     ##---------------------------------------------------------
     def slot_allocation(self):
+        if not self.slot_valid:
         # make flow_graphs
-        for flow in self.flow_dict.values():
-            flow.make_flow_graph()
+            for flow in self.flow_dict.values():
+                flow.make_flow_graph()
 
-        # sort by the number of edges for each flow_graph
-        flow_list = sorted(list(self.flow_dict.values()), key=lambda x: nx.number_of_edges(x.flow_graph))
+            # sort by the number of edges for each flow_graph
+            flow_list = sorted(list(self.flow_dict.values()), key=lambda x: nx.number_of_edges(x.flow_graph))
+
+            # allocation by greedy
+            self.slot_list = [Slot()]
+            for flow in flow_list:
+                allocated = False
+                for slot in self.slot_list:
+                    if slot.can_combine_and_do(flow):
+                        allocated = True
+                        break
+
+                if allocated:
+                    continue
+
+                new_slot = Slot()
+                new_slot.can_combine_and_do(flow)
+                self.slot_list.append(new_slot)
         
-        # allocation by greedy
-        self.slot_list = [Slot()]
-        for flow in flow_list:
-            allocated = False
-            for slot in self.slot_list:
-                if slot.can_combine_and_do(flow):
-                    allocated = True
-                    break
-            
-            if allocated:
-                continue
-            
-            new_slot = Slot()
-            new_slot.can_combine_and_do(flow)
-            self.slot_list.append(new_slot)
-        
+        self.slot_valid = True
+
+        return pickle.loads(pickle.dumps(self.slot_list, pickle.HIGHEST_PROTOCOL))
+
+    ##---------------------------------------------------------
+    def get_slot_num(self):
+        self.slot_allocation()
         return len(self.slot_list)
-
     
     ##---------------------------------------------------------
     def get_total_communication_hops(self):
@@ -231,3 +270,7 @@ class AllocatorUnit:
             print("dst: {}".format(pair.dst_vNode.vNode_id))
             print("flow_id: {}".format(pair.flow_id))
             print(" --------------------------------------------------- ")
+    
+    ##---------------------------------------------------------
+    def __deepcopy__(self, memo):
+        return pickle.loads(pickle.dumps(self, pickle.HIGHEST_PROTOCOL))

@@ -67,7 +67,7 @@ def alns(au, max_execution_time):
     # genarate the initial solution
     oplib.generate_initial_solution(au)
     best = au.save_au()
-    best_slot_num = au.slot_allocation()
+    best_slot_num = au.get_slot_num()
     best_total_hops = au.get_total_communication_hops()
 
     while time.time() - start_time < max_execution_time:
@@ -78,7 +78,7 @@ def alns(au, max_execution_time):
         break_and_repair(au, target_node_num)
 
         # evaluation
-        slot_num = au.slot_allocation()
+        slot_num = au.get_slot_num()
         total_hops = au.get_total_communication_hops()
         if slot_num < best_slot_num:
             updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
@@ -122,7 +122,7 @@ def alns2(au, max_execution_time):
     # genarate the initial solution
     oplib.generate_initial_solution(au)
     best = au.save_au()
-    best_slot_num = au.slot_allocation()
+    best_slot_num = au.get_slot_num()
     best_total_hops = au.get_total_communication_hops()
 
     while time.time() - start_time < max_execution_time:
@@ -132,7 +132,7 @@ def alns2(au, max_execution_time):
         node_swap(au)
 
         # evaluation
-        slot_num = au.slot_allocation()
+        slot_num = au.get_slot_num()
         total_hops = au.get_total_communication_hops()
         if slot_num < best_slot_num:
             updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))

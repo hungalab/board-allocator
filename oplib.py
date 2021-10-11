@@ -16,12 +16,18 @@ def random_pair_allocation(au, pair_id):
     path = random.choice(au.st_path_table[src][dst])
     pair.path = path
 
+    # slot_list invalidation
+    au.slot_valid = False
+
 #--------------------------------------------------------------
 def pair_deallocation(au, pair_id):
     # modify the correspond pair and abstract the path
     pair = au.pair_dict[pair_id]
     path = pair.path
     pair.path = None
+
+    # slot_list invalidation
+    au.slot_valid = False
 
 #--------------------------------------------------------------
 def random_node_allocation(au, vNode_id):
