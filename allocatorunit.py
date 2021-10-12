@@ -97,7 +97,7 @@ class AllocatorUnit:
             self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
             ## manage the real node
             self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
-            self.empty_rNode_list = list() # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            self.empty_rNode_list = list(range(nx.number_of_nodes(self.topology))) # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
             ## shortest path list
             self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
             ## slot management
@@ -219,7 +219,7 @@ class AllocatorUnit:
     
     ##---------------------------------------------------------
     def save_au(self, file_name=None, protocol=pickle.HIGHEST_PROTOCOL):
-        if file_name == None:
+        if file_name is None:
             return pickle.dumps(self, protocol)
         else:
             with open(file_name, 'wb') as f:

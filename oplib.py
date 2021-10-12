@@ -1,4 +1,5 @@
 import random
+import sys, traceback
 
 import networkx as nx
 
@@ -14,6 +15,22 @@ def random_pair_allocation(au, pair_id):
 
     # pick up a path
     path = random.choice(au.st_path_table[src][dst])
+    pair.path = path
+
+    # slot_list invalidation
+    au.slot_valid = False
+
+#--------------------------------------------------------------
+def pair_allocation(au, pair_id, path):
+    # pick up src and dst rNode_id
+    pair = au.pair_dict[pair_id]
+    src = pair.src_vNode.rNode_id
+    dst = pair.dst_vNode.rNode_id
+
+    # update path
+    if path[0] != src or path[-1] != dst:
+        print("Error: The path does not match this pair", sys.stderr)
+        sys.exit(7)
     pair.path = path
 
     # slot_list invalidation
@@ -42,12 +59,12 @@ def random_node_allocation(au, vNode_id):
 
     # temporary send-path allocation (if dst node is not allocated, the operation is not executed)
     for send_pair in vNode.send_pair_list:
-        if send_pair.dst_vNode.rNode_id != None:
+        if send_pair.dst_vNode.rNode_id is not None:
             random_pair_allocation(au, send_pair.pair_id)
     
     # temporary recv-path allocation (if src node is not allocated, the operation is not executed)
     for recv_pair in vNode.recv_pair_list:
-        if recv_pair.src_vNode.rNode_id != None:
+        if recv_pair.src_vNode.rNode_id is not None:
             random_pair_allocation(au, recv_pair.pair_id)
 
 #--------------------------------------------------------------
@@ -63,12 +80,12 @@ def node_allocation(au, vNode_id, rNode_id):
 
     # temporary send-path allocation (if dst node is not allocated, the operation is not executed)
     for send_pair in vNode.send_pair_list:
-        if send_pair.dst_vNode.rNode_id != None:
+        if send_pair.dst_vNode.rNode_id is not None:
             random_pair_allocation(au, send_pair.pair_id)
     
     # temporary recv-path allocation (if src node is not allocated, the operation is not executed)
     for recv_pair in vNode.recv_pair_list:
-        if recv_pair.src_vNode.rNode_id != None:
+        if recv_pair.src_vNode.rNode_id is not None:
             random_pair_allocation(au, recv_pair.pair_id)
 
 #--------------------------------------------------------------
@@ -84,26 +101,20 @@ def node_deallocation(au, vNode_id):
 
     # send-path deallocation
     for send_pair in vNode.send_pair_list:
-        if send_pair.path != None:
+        if send_pair.path is not None:
             pair_deallocation(au, send_pair.pair_id)
     
     # recv-path deallocation
     for recv_pair in vNode.recv_pair_list:
-        if recv_pair.path != None:
+        if recv_pair.path is not None:
             pair_deallocation(au, recv_pair.pair_id)
 
 #--------------------------------------------------------------
 def generate_initial_solution(au):
-    # initialize au.empty_rNode_list
-    au.empty_rNode_list = list(range(nx.number_of_nodes(au.topology)))
-    for vNode in au.running_vNode_list:
-        rNode_id = vNode.rNode_id
-        if rNode_id != None:
-            au.empty_rNode_list.remove(rNode_id)
-    
     # allocate rNodes
     for vNode in au.allocating_vNode_list:
-        random_node_allocation(au, vNode.vNode_id)
+        if vNode.rNode_id is None:
+            random_node_allocation(au, vNode.vNode_id)
 
 #--------------------------------------------------------------
 def random_update_path(au):
