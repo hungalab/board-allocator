@@ -10,5 +10,6 @@ output/
 !fic-topo-file-cross.txt
 test.png
 *.pickle
+cxtest.py
 
 __pycache__
