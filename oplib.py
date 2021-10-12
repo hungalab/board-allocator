@@ -28,9 +28,10 @@ def pair_allocation(au, pair_id, path):
     dst = pair.dst_vNode.rNode_id
 
     # update path
-    if path[0] != src or path[-1] != dst:
-        print("Error: The path does not match this pair", sys.stderr)
-        sys.exit(7)
+    #if path[0] != src or path[-1] != dst:
+    #    print("Error: The path does not match this pair.")
+    #    print("src: {}, dst: {}, path: {}".format(src, dst, path))
+    #    sys.exit(7)
     pair.path = path
 
     # slot_list invalidation
@@ -49,8 +50,8 @@ def pair_deallocation(au, pair_id):
 #--------------------------------------------------------------
 def random_node_allocation(au, vNode_id):
     # pick up an empty rNove
-    map_rNode_id = random.choice(au.empty_rNode_list)
-    au.empty_rNode_list.remove(map_rNode_id)
+    map_rNode_id = random.choice(list(au.empty_rNode_set))
+    au.empty_rNode_set.remove(map_rNode_id)
 
     # temporary node allocation
     vNode = au.vNode_dict[vNode_id]
@@ -71,7 +72,7 @@ def random_node_allocation(au, vNode_id):
 def node_allocation(au, vNode_id, rNode_id):
     # pick up an empty rNove
     map_rNode_id = rNode_id
-    au.empty_rNode_list.remove(map_rNode_id)
+    au.empty_rNode_set.remove(map_rNode_id)
 
     # temporary node allocation
     vNode = au.vNode_dict[vNode_id]
@@ -97,7 +98,7 @@ def node_deallocation(au, vNode_id):
 
     # node deallocation (update the list and dict)
     au.temp_allocated_rNode_dict.pop(rNode_id)
-    au.empty_rNode_list.append(rNode_id)
+    au.empty_rNode_set.add(rNode_id)
 
     # send-path deallocation
     for send_pair in vNode.send_pair_list:

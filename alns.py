@@ -14,7 +14,7 @@ def node_swap(au):
     rNode_id0 = random.choice(temp_allocated_rNode_list)
 
     # select swapped rNode_id
-    candidate_list = au.empty_rNode_list + temp_allocated_rNode_list
+    candidate_list = list(au.empty_rNode_set) + temp_allocated_rNode_list
     rNode_id1 = random.choice(candidate_list)
 
     # deallocate rNode_id0

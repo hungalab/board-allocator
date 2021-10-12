@@ -97,7 +97,7 @@ class AllocatorUnit:
             self.running_app_list = list() # 1D list: the list of Apps that are runnning (allocation is finished)
             ## manage the real node
             self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
-            self.empty_rNode_list = list(range(nx.number_of_nodes(self.topology))) # 1D list: the list of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            self.empty_rNode_set = set(range(nx.number_of_nodes(self.topology))) # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
             ## shortest path list
             self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
             ## slot management
@@ -140,7 +140,7 @@ class AllocatorUnit:
             self.running_app_list = base.running_app_list
             ## manage the real node
             self.temp_allocated_rNode_dict = base.temp_allocated_rNode_dict
-            self.empty_rNode_list = base.empty_rNode_list
+            self.empty_rNode_set = base.empty_rNode_set
             ## shortest path list
             self.st_path_table = base.st_path_table
             ## slot management
@@ -149,7 +149,7 @@ class AllocatorUnit:
 
         else:
             print("Error: Only one of the arguments of the AllocatorUnit constructor \
-            should be specified, and the other should be None.", sys.stderr)
+            should be specified, and the other should be None.")
             sys.exit(4)
 
     ##---------------------------------------------------------
@@ -253,6 +253,7 @@ class AllocatorUnit:
             print("vNode_id: {}".format(vNode.vNode_id))
             print("send_pair_id_list: {}".format([pair.pair_id for pair in vNode.send_pair_list]))
             print("recv_pair_id_list: {}".format([pair.pair_id for pair in vNode.recv_pair_list]))
+            print("rNode_id: {}".format(vNode.rNode_id))
             print(" --------------------------------------------------- ")
         
         print("\n ##### Flow ##### ")
@@ -268,7 +269,7 @@ class AllocatorUnit:
             print("pair_id: {}".format(pair.pair_id))
             print("src: {}".format(pair.src_vNode.vNode_id))
             print("dst: {}".format(pair.dst_vNode.vNode_id))
-            print("flow_id: {}".format(pair.flow_id))
+            print("path: {}".format(pair.path))
             print(" --------------------------------------------------- ")
     
     ##---------------------------------------------------------
