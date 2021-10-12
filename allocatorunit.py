@@ -42,7 +42,8 @@ class VNode:
         self.vNode_id = vNode_id # int: virtualized node ID
         self.send_pair_list = send_pair_list # list: list of pair to be sent by this VNode
         self.recv_pair_list = recv_pair_list # list: list of pair to be recieved by this VNode
-        self.rNode_id = None # allocated node label (label is defined in topologyFile), if the vNode is not allocated (including tmporary), the value is None
+        self.rNode_id = None # allocated node label (label is defined in topologyFile), 
+                             # if the vNode is not allocated (including tmporary), the value is None
 
 #--------------------------------------------------------------
 class Slot:
@@ -58,6 +59,11 @@ class Slot:
             return True
         else:
             return False
+
+#--------------------------------------------------------------
+class AllocatorUnitInitializationError(Exception):
+    # This class is for errors related to AllocatorUnit constructor arguments.
+    pass
 
 #--------------------------------------------------------------
 class AllocatorUnit:
@@ -148,9 +154,9 @@ class AllocatorUnit:
             self.slot_valid = base.slot_valid
 
         else:
-            print("Error: Only one of the arguments of the AllocatorUnit constructor \
+            raise AllocatorUnitInitializationError( \
+            "Only one of the arguments of the AllocatorUnit constructor \
             should be specified, and the other should be None.")
-            sys.exit(4)
 
     ##---------------------------------------------------------
     def add_app(self, app):
@@ -186,7 +192,8 @@ class AllocatorUnit:
                 flow.make_flow_graph()
 
             # sort by the number of edges for each flow_graph
-            flow_list = sorted(list(self.flow_dict.values()), key=lambda x: nx.number_of_edges(x.flow_graph))
+            flow_list = sorted(list(self.flow_dict.values()), \
+                               key=lambda x: nx.number_of_edges(x.flow_graph))
 
             # allocation by greedy
             self.slot_list = [Slot()]

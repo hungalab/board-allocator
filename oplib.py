@@ -29,9 +29,8 @@ def pair_allocation(au, pair_id, path):
 
     # update path
     #if path[0] != src or path[-1] != dst:
-    #    print("Error: The path does not match this pair.")
-    #    print("src: {}, dst: {}, path: {}".format(src, dst, path))
-    #    sys.exit(7)
+    #    raise ValueError("Error: The path {} does not match this pair \
+    #                        (src: {}, dst: {}).".format(path, src, dst))
     pair.path = path
 
     # slot_list invalidation

@@ -209,14 +209,14 @@ class cstgen:
             try:
                 src_index = self.topo_sws_uni.index(src)
             except ValueError:
-                print("Error: src number ({0}) is wrong.".format(h_src), sys.stderr)
+                print("Error: src number ({0}) is wrong.".format(h_src), file=sys.stderr)
                 self.writeLog_str += "Error: src number ({0}) is wrong.".format(h_src)
                 self.writeLog(self.writeLog_str)
                 sys.exit(3)
             try:
                 dst_index = self.topo_sws_uni.index(dst)
             except ValueError:
-                print("Error: dst number ({0}) is wrong.".format(h_dst), sys.stderr)
+                print("Error: dst number ({0}) is wrong.".format(h_dst), file=sys.stderr)
                 self.writeLog_str += "Error: dst number ({0}) is wrong.".format(h_dst)
                 self.writeLog(self.writeLog_str)
                 sys.exit(4)
@@ -368,7 +368,7 @@ class cstgen:
         elif self.isSlotLimited and (self.max_cp + 1 <= self.maxSlots):
             slots = self.maxSlots
         else:
-            print("Error: # of slots is larger than the specified value.", sys.stderr)
+            print("Error: # of slots is larger than the specified value.", file=sys.stderr)
             self.writeLog_str += "Error: # of slots is larger than the specified value."
             self.writeLog(self.writeLog_str)
             sys.exit(8)
@@ -385,7 +385,7 @@ class cstgen:
                     error = True
                 k += 1
             if error:
-                print("Error: Slot # collision is occured.", sys.stderr)
+                print("Error: Slot # collision is occured.", file=sys.stderr)
                 self.writeLog_str += "Error: Slot # collision is occured."
                 self.writeLog(self.writeLog_str)
                 sys.exit(5)
@@ -424,7 +424,7 @@ class cstgen:
             try:
                 src_index = self.topo_sws_uni.index(current_pair.src)
             except ValueError:
-                print("Error: src number ({0}) is wrong.".format(current_pair.src), sys.stderr)
+                print("Error: src number ({0}) is wrong.".format(current_pair.src), file=sys.stderr)
                 self.writeLog_str += "Error: src number ({0}) is wrong.".format(current_pair.src)
                 self.writeLog(self.writeLog_str)
                 sys.exit(6)
@@ -432,7 +432,7 @@ class cstgen:
             try:
                 dst_index = self.topo_sws_uni.index(current_pair.dst)
             except ValueError:
-                print("Error: dst number ({0}) is wrong.".format(current_pair.dst), sys.stderr)
+                print("Error: dst number ({0}) is wrong.".format(current_pair.dst), file=sys.stderr)
                 self.writeLog_str += "Error: dst number ({0}) is wrong.".format(current_pair.dst)
                 self.writeLog(self.writeLog_str)
                 sys.exit(7)
@@ -575,11 +575,11 @@ class cstgenCaller:
         self.args = parser.parse_args()
 
         if not os.path.isfile(self.args.t):
-            print("Error: {0:s} was not found.".format(self.args.t), sys.stderr)
+            print("Error: {0:s} was not found.".format(self.args.t), file=sys.stderr)
             sys.exit(1)
         
         if not os.path.isfile(self.args.c):
-            print("Error: {0:s} was not found.".format(self.args.c), sys.stderr)
+            print("Error: {0:s} was not found.".format(self.args.c), file=sys.stderr)
             sys.exit(2)
         
         if self.args.s is not None:

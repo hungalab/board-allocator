@@ -53,7 +53,6 @@ def cx_by_mask(parent0, parent1, mask):
                 # when new_rNode_id has already been secured, release new_rNode_id
                 target_vNode_id = child.temp_allocated_rNode_dict[new_rNode_id]
                 child.vNode_dict[target_vNode_id].rNode_id = None
-                #raise KeyError("vNode_id: {}, new_rNode_id: {}, empty: {}".format(vNode_id, new_rNode_id, child.empty_rNode_set))
             child.temp_allocated_rNode_dict[new_rNode_id] = vNode.vNode_id
             # update rNode_id
             vNode.rNode_id = new_rNode_id
@@ -105,12 +104,10 @@ def cx_by_mask(parent0, parent1, mask):
 #--------------------------------------------------------------
 def cx_uniform(parent0, parent1):
     if len(parent0.temp_allocated_rNode_dict) != len(parent1.temp_allocated_rNode_dict):
-        print("Error: The number of nodes being allocated is different for each individual.")
-        sys.exit(5)
+        raise ValueError("The number of nodes being allocated is different for each parent.")
     
     if len(parent0.allocating_pair_list) != len(parent1.allocating_pair_list):
-        print("Error: The number of communications being allocated is different for each individual.")
-        sys.exit(6)
+        raise ValueError("The number of communications being allocated is different for each parent.")
     
     # make masks
     sorted_vNode_id_list = sorted(parent0.temp_allocated_rNode_dict.values())
@@ -122,8 +119,9 @@ def cx_uniform(parent0, parent1):
     print("mask1: {}\n".format(mask1.values()))
 
     ## check the duplication
-    next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit else parent0.vNode_dict[vNode_id].rNode_id \
-                                for vNode_id, bit in mask0.items()}
+    next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit \
+                                        else parent0.vNode_dict[vNode_id].rNode_id \
+                              for vNode_id, bit in mask0.items()}
     counter = collections.Counter(list(next_child0_rNode_dict.values()))
     for key, count in counter.items():
         if count == 2:
@@ -137,8 +135,9 @@ def cx_uniform(parent0, parent1):
                 elif rNode_id == key and current == selected:
                     current += 1
     
-    next_child1_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit else parent0.vNode_dict[vNode_id].rNode_id \
-                                for vNode_id, bit in mask1.items()}
+    next_child1_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit \
+                                        else parent0.vNode_dict[vNode_id].rNode_id \
+                              for vNode_id, bit in mask1.items()}
     counter = collections.Counter(list(next_child1_rNode_dict.values()))
     for key, count in counter.items():
         if count == 2:

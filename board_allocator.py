@@ -27,16 +27,13 @@ def parser():
     args = parser.parse_args()
 
     if not os.path.isfile(args.t):
-        print("Error: {0:s} was not found.".format(args.t), sys.stderr)
-        sys.exit(1)
-    
+        raise FileNotFoundError("Error: {0:s} was not found.".format(args.t))
+
     if not os.path.isfile(args.c):
-        print("Error: {0:s} was not found.".format(args.c), sys.stderr)
-        sys.exit(2)
+        raise FileNotFoundError("Error: {0:s} was not found.".format(args.c))
     
     if (args.s + args.m + args.ho <= 0):
-        print("Error: Total execution time must be greater than 0 second.".format(args.c), sys.stderr)
-        sys.exit(3)
+        raise ValueError("Error: Total execution time must be greater than 0 second.")
     
     return args
 
