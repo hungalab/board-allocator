@@ -163,6 +163,15 @@ def cx_uniform(parent0, parent1):
     return child0, child1
 
 #--------------------------------------------------------------
+def mut_swap(individual, mut_pb_for_each_vNode):
+    if 0 <= mut_pb_for_each_vNode <= 1 :
+        raise ValueError("Specify a value between 0 and 1.")
+    
+    for vNode in individual.allocating_vNode_list:
+        if random.random() < mut_pb_for_each_vNode:
+            oplib.node_swap(vNode.vNode_id)
+
+#--------------------------------------------------------------
 class Evaluator:
     def __init__(self):
         self.__funcs = [
@@ -197,7 +206,7 @@ class GA:
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.Individual)
         self.toolbox.register("evaluate", eval_tool.evaluate)
         self.toolbox.register("mate", cx_uniform)
-        self.toolbox.register("mutate", TBD)
+        self.toolbox.register("mutate", mut_swap)
         self.toolbox.register("select", tools.selTournamentDCD)
 
         # statistics settings

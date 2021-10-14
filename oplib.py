@@ -134,3 +134,51 @@ def update_all_paths_of_a_random_node(au):
 
     # allocate vNode to rNode_id (replace vNode to same rNode)
     node_allocation(au, vNode_id, rNode_id)
+
+#--------------------------------------------------------------
+def node_swap(au, target_vNode_id=None):
+    if target_vNode_id is None:
+        # select a temporary allocated rNode_id
+        temp_allocated_rNode_list = list(au.temp_allocated_rNode_dict.keys())
+        rNode_id0 = random.choice(temp_allocated_rNode_list)
+    else: 
+        rNode_id0 = au.vNode_dict[target_vNode_id].rNode_id
+
+    # select swapped rNode_id
+    candidate_list = list(au.empty_rNode_set) + temp_allocated_rNode_list
+    rNode_id1 = random.choice(candidate_list)
+
+    # deallocate rNode_id0
+    vNode_id0 = au.temp_allocated_rNode_dict[rNode_id0]
+    node_deallocation(au, vNode_id0)
+
+    # if rNode_id1 has a vNode, deallocate vNode_id1 and allocate it to rNode_id0
+    try:
+        vNode_id1 = au.temp_allocated_rNode_dict[rNode_id1]
+    except KeyError:
+        pass
+    else:
+        node_deallocation(au, vNode_id1)
+        node_allocation(au, vNode_id1, rNode_id0)
+    
+    # allocate vNode_id0 to rNode_id1
+    node_allocation(au, vNode_id0, rNode_id1)
+
+#--------------------------------------------------------------
+def break_and_repair(au, target_node_num):
+    # break
+    target_vNode_id_list = list()
+    for i in range(target_node_num):
+        # select a temporary allocated vNode_id to break
+        temp_allocated_vNode_list = list(au.temp_allocated_rNode_dict.values())
+        vNode_id = random.choice(temp_allocated_vNode_list)
+
+        # deallocate selected vNode_id
+        node_deallocation(au, vNode_id)
+
+        # append selected vNode_id to target_vNode_id_list
+        target_vNode_id_list.append(vNode_id)
+
+    # repair
+    for vNode_id in target_vNode_id_list:
+        random_node_allocation(au, vNode_id)

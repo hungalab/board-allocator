@@ -8,51 +8,6 @@ from allocatorunit import AllocatorUnit, App, Pair, VNode
 import oplib
 
 #--------------------------------------------------------------
-def node_swap(au):
-    # select a temporary allocated rNode_id
-    temp_allocated_rNode_list = list(au.temp_allocated_rNode_dict.keys())
-    rNode_id0 = random.choice(temp_allocated_rNode_list)
-
-    # select swapped rNode_id
-    candidate_list = list(au.empty_rNode_set) + temp_allocated_rNode_list
-    rNode_id1 = random.choice(candidate_list)
-
-    # deallocate rNode_id0
-    vNode_id0 = au.temp_allocated_rNode_dict[rNode_id0]
-    oplib.node_deallocation(au, vNode_id0)
-
-    # if rNode_id1 has a vNode, deallocate vNode_id1 and allocate it to rNode_id0
-    try:
-        vNode_id1 = au.temp_allocated_rNode_dict[rNode_id1]
-    except KeyError:
-        pass
-    else:
-        oplib.node_deallocation(au, vNode_id1)
-        oplib.node_allocation(au, vNode_id1, rNode_id0)
-    
-    # allocate vNode_id0 to rNode_id1
-    oplib.node_allocation(au, vNode_id0, rNode_id1)
-
-#--------------------------------------------------------------
-def break_and_repair(au, target_node_num):
-    # break
-    target_vNode_id_list = list()
-    for i in range(target_node_num):
-        # select a temporary allocated vNode_id to break
-        temp_allocated_vNode_list = list(au.temp_allocated_rNode_dict.values())
-        vNode_id = random.choice(temp_allocated_vNode_list)
-
-        # deallocate selected vNode_id
-        oplib.node_deallocation(au, vNode_id)
-
-        # append selected vNode_id to target_vNode_id_list
-        target_vNode_id_list.append(vNode_id)
-
-    # repair
-    for vNode_id in target_vNode_id_list:
-        oplib.random_node_allocation(au, vNode_id)
-
-#--------------------------------------------------------------
 def alns(au, max_execution_time):
     # probability changer
     p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
@@ -75,7 +30,7 @@ def alns(au, max_execution_time):
 
         # break and repair
         target_node_num = random.randrange(1, p_range)
-        break_and_repair(au, target_node_num)
+        oplib.break_and_repair(au, target_node_num)
 
         # evaluation
         slot_num = au.get_slot_num()
@@ -131,7 +86,7 @@ def alns2(au, max_execution_time):
         loops += 1
 
         # execute node_swap
-        node_swap(au)
+        oplib.node_swap(au)
 
         # evaluation
         slot_num = au.get_slot_num()
