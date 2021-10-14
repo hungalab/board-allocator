@@ -20,6 +20,8 @@ def random_pair_allocation(au, pair_id):
     # slot_list invalidation
     au.slot_valid = False
 
+    return au
+
 #--------------------------------------------------------------
 def pair_allocation(au, pair_id, path):
     # pick up src and dst rNode_id
@@ -36,6 +38,8 @@ def pair_allocation(au, pair_id, path):
     # slot_list invalidation
     au.slot_valid = False
 
+    return au
+
 #--------------------------------------------------------------
 def pair_deallocation(au, pair_id):
     # modify the correspond pair and abstract the path
@@ -45,6 +49,8 @@ def pair_deallocation(au, pair_id):
 
     # slot_list invalidation
     au.slot_valid = False
+
+    return au
 
 #--------------------------------------------------------------
 def random_node_allocation(au, vNode_id):
@@ -67,6 +73,8 @@ def random_node_allocation(au, vNode_id):
         if recv_pair.src_vNode.rNode_id is not None:
             random_pair_allocation(au, recv_pair.pair_id)
 
+    return au
+
 #--------------------------------------------------------------
 def node_allocation(au, vNode_id, rNode_id):
     # pick up an empty rNove
@@ -87,6 +95,8 @@ def node_allocation(au, vNode_id, rNode_id):
     for recv_pair in vNode.recv_pair_list:
         if recv_pair.src_vNode.rNode_id is not None:
             random_pair_allocation(au, recv_pair.pair_id)
+    
+    return au
 
 #--------------------------------------------------------------
 def node_deallocation(au, vNode_id):
@@ -108,6 +118,8 @@ def node_deallocation(au, vNode_id):
     for recv_pair in vNode.recv_pair_list:
         if recv_pair.path is not None:
             pair_deallocation(au, recv_pair.pair_id)
+    
+    return au
 
 #--------------------------------------------------------------
 def generate_initial_solution(au):
@@ -116,11 +128,15 @@ def generate_initial_solution(au):
         if vNode.rNode_id is None:
             random_node_allocation(au, vNode.vNode_id)
 
+    return au
+
 #--------------------------------------------------------------
 def random_update_path(au):
     selected_pair = random.choice(au.allocating_pair_list)
     pair_deallocation(au, selected_pair.pair_id)
     random_pair_allocation(au, selected_pair.pair_id)
+
+    return au
 
 #--------------------------------------------------------------
 def update_all_paths_of_a_random_node(au):
@@ -134,6 +150,8 @@ def update_all_paths_of_a_random_node(au):
 
     # allocate vNode to rNode_id (replace vNode to same rNode)
     node_allocation(au, vNode_id, rNode_id)
+
+    return au
 
 #--------------------------------------------------------------
 def node_swap(au, target_vNode_id=None):
@@ -164,6 +182,8 @@ def node_swap(au, target_vNode_id=None):
     # allocate vNode_id0 to rNode_id1
     node_allocation(au, vNode_id0, rNode_id1)
 
+    return au
+
 #--------------------------------------------------------------
 def break_and_repair(au, target_node_num):
     # break
@@ -182,3 +202,5 @@ def break_and_repair(au, target_node_num):
     # repair
     for vNode_id in target_vNode_id_list:
         random_node_allocation(au, vNode_id)
+    
+    return au
