@@ -19,11 +19,11 @@ class NSGA2(GA):
         self.mutation_pb = mutation_pb
         self.pop_num = pop_num
         if offspring_num is None:
-            self.offspring_num = pop_num
-        elif offspring_num % 2 == 0:
+            self.offspring_num = pop_num - (pop_num % 4)
+        elif offspring_num % 4 == 0:
             self.offspring_num = offspring_num
         else:
-            ValueError("offspring_num should be an even number.")
+            ValueError("offspring_num must be a multiple of 4.")
     
     def run(self, exectution_time, process_num=1):
         # multiprocessing settings
@@ -63,8 +63,18 @@ class NSGA2(GA):
             # uppdate generation number
             gen += 1
 
+            # binary tournament selection
+            parents = list()
+            tournament_max_length = len(pop) - (len(pop) % 4)
+            max_loop_index = self.offspring_num // tournament_max_length
+            for i in range(max_loop_index + 1):
+                if i != max_loop_index:
+                    length = tournament_max_length
+                else:
+                    length = self.offspring_num - (tournament_max_length * max_loop_index)
+                parents += tools.selTournamentDCD(pop, length)
+            
             # generate offsprings
-            parents = random.choices(pop, k=self.offspring_num)
             offsprings = list(itertools.chain.from_iterable(self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2])))
 
             # offsprings' mutation

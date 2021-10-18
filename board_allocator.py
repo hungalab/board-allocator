@@ -23,6 +23,7 @@ def parser():
     parser.add_argument('-s', help='', default=0, type=int)
     parser.add_argument('-m', help='', default=0, type=int)
     parser.add_argument('-ho', help='', default=0, type=int)
+    parser.add_argument('--method', help='method to use', default='NSGA2')
 
     args = parser.parse_args()
 
@@ -197,6 +198,6 @@ if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, 'NCGA')
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method)
     #actor.print_result()
     print(" ### OVER ### ")
