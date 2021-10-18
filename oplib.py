@@ -1,10 +1,6 @@
 import random
-import sys, traceback
 
 import networkx as nx
-
-# my library
-from allocatorunit import AllocatorUnit, App, Pair, VNode
 
 #--------------------------------------------------------------
 def random_pair_allocation(au, pair_id):

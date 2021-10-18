@@ -1,8 +1,6 @@
-import time
 import random
 import copy
 import collections
-import sys, traceback
 import numpy
 from functools import partial
 
@@ -10,11 +8,10 @@ import networkx as nx
 
 from deap import tools
 from deap import base
-from deap import algorithms
 from deap import creator
 
 # my library
-from allocatorunit import AllocatorUnit, App, Pair, VNode
+from allocatorunit import AllocatorUnit
 from evaluator import Evaluator
 import oplib
 

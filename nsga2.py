@@ -4,15 +4,11 @@ import multiprocessing
 import itertools
 
 from deap import tools
-from deap import base
-from deap import algorithms
-from deap import creator
 
 #import networkx as nx
 
 # my library
-from allocatorunit import AllocatorUnit#, App, Pair, VNode, Flow
-from galib import GA, Evaluator, my_multiprocessing_map
+from galib import GA, my_multiprocessing_map
 
 #--------------------------------------------------------------
 class NSGA2(GA):
@@ -45,7 +41,7 @@ class NSGA2(GA):
         # generate 0th population
         pop = self.toolbox.population(self.pop_num)
 
-        # evaluate
+        # evaluate the population
         invalid_ind = [ind for ind in pop if not ind.fitness.valid]
         fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):

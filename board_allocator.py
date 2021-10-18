@@ -1,11 +1,9 @@
 import argparse
 import json
-import sys, traceback
 import os
 import os.path
 import shutil
 import numpy as np
-import collections
 from collections import OrderedDict
 
 import networkx as nx

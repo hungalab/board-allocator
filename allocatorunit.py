@@ -1,4 +1,3 @@
-import sys, traceback
 import pickle
 
 import networkx as nx
