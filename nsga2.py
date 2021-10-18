@@ -24,8 +24,10 @@ class NSGA2(GA):
         self.pop_num = pop_num
         if offspring_num is None:
             self.offspring_num = pop_num
-        else:
+        elif offspring_num % 2 == 0:
             self.offspring_num = offspring_num
+        else:
+            ValueError("offspring_num should be an even number.")
     
     def run(self, exectution_time, process_num=1):
         # multiprocessing settings
