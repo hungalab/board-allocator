@@ -15,6 +15,7 @@ from allocatorunit import AllocatorUnit
 from evaluator import Evaluator
 import oplib
 
+#--------------------------------------------------------------
 def mask_generator(sorted_vNode_id_list):
     l0, l1 = dict(), dict()
     for vNode_id in sorted_vNode_id_list:
