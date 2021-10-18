@@ -155,9 +155,9 @@ def update_all_paths_of_a_random_node(au):
 
 #--------------------------------------------------------------
 def node_swap(au, target_vNode_id=None):
+    # select a temporary allocated rNode_id
+    temp_allocated_rNode_list = list(au.temp_allocated_rNode_dict.keys())
     if target_vNode_id is None:
-        # select a temporary allocated rNode_id
-        temp_allocated_rNode_list = list(au.temp_allocated_rNode_dict.keys())
         rNode_id0 = random.choice(temp_allocated_rNode_list)
     else: 
         rNode_id0 = au.vNode_dict[target_vNode_id].rNode_id

@@ -222,7 +222,12 @@ class AllocatorUnit:
     
     ##---------------------------------------------------------
     def get_total_communication_hops(self):
+        self.slot_allocation()
         return sum([nx.number_of_edges(slot.graph) for slot in self.slot_list])
+    
+    ##---------------------------------------------------------
+    def board_num_used_by_allocating_app(self):
+        return len(set().union(*[pair.path for pair in self.allocating_pair_list]))
     
     ##---------------------------------------------------------
     def save_au(self, file_name=None, protocol=pickle.HIGHEST_PROTOCOL):

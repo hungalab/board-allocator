@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode, Flow
 import alns
+from nsga2 import NSGA2
 
 ##---------------------------------------------------------
 def parser():
@@ -157,8 +158,17 @@ class BoardAllocator:
         self.au.add_app(app)
     
     ##---------------------------------------------------------
-    def run_optimization(self, max_execution_time):
-        self.au = alns.alns2(self.au, max_execution_time)
+    def run_optimization(self, max_execution_time, method):
+        if method.lower() == '2-opt':
+            self.au = alns.alns2(self.au, max_execution_time)
+        elif method.lower() == 'alns':
+            self.au = alns.alns(self.au, max_execution_time)
+        elif method.lower() == 'nsga2':
+            seed = self.au.save_au()
+            nsga2 = NSGA2(seed)
+            hall_of_fame, logbook = nsga2.run(max_execution_time, 8)
+            print(logbook.stream)
+            print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
     
     ##---------------------------------------------------------
     def print_result(self):
@@ -182,6 +192,6 @@ if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho)
-    actor.print_result()
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, 'NSGA2')
+    #actor.print_result()
     print(" ### OVER ### ")

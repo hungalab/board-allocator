@@ -3,6 +3,8 @@ import random
 import copy
 import collections
 import sys, traceback
+import numpy
+from functools import partial
 
 import networkx as nx
 
@@ -13,6 +15,7 @@ from deap import creator
 
 # my library
 from allocatorunit import AllocatorUnit, App, Pair, VNode
+from evaluator import Evaluator
 import oplib
 
 def mask_generator(sorted_vNode_id_list):
@@ -113,11 +116,6 @@ def cx_uniform(parent0, parent1):
     sorted_vNode_id_list = sorted(parent0.temp_allocated_rNode_dict.values())
     mask0, mask1 = mask_generator(sorted_vNode_id_list)
 
-    # for debug
-    print("\n\nbefore duplication check")
-    print("mask0: {}".format(mask0.values()))
-    print("mask1: {}\n".format(mask1.values()))
-
     ## check the duplication
     next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit \
                                         else parent0.vNode_dict[vNode_id].rNode_id \
@@ -150,44 +148,34 @@ def cx_uniform(parent0, parent1):
                     break
                 elif rNode_id == key and current == selected:
                     current += 1
-    print("next_child0_rNode_dict: {}".format(next_child0_rNode_dict.values()))
-    print("next_child1_rNode_dict: {}\n".format(next_child1_rNode_dict.values()))
 
-    print("after duplication check")
-    print("mask0: {}".format(mask0.values()))
-    print("mask1: {}\n\n".format(mask1.values()))
-
-    # exectute crossbar
+    # exectute crossover
     child0 = cx_by_mask(parent0, parent1, mask0)
     child1 = cx_by_mask(parent0, parent1, mask1)
     return child0, child1
 
 #--------------------------------------------------------------
-def mut_swap(individual, mut_pb_for_each_vNode):
-    if 0 <= mut_pb_for_each_vNode <= 1 :
+def mut_swap(individual, mut_pb):
+    if not 0 <= mut_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
     
-    for vNode in individual.allocating_vNode_list:
-        if random.random() < mut_pb_for_each_vNode:
-            oplib.node_swap(vNode.vNode_id)
+    if random.random() < mut_pb:
+        vNode = random.choice(individual.allocating_vNode_list)
+        oplib.node_swap(individual, vNode.vNode_id)
+
+    return individual,
 
 #--------------------------------------------------------------
-class Evaluator:
-    def __init__(self):
-        self.__funcs = [
-            ('slots', lambda ind: ind.get_slot_num(), -1.0), 
-            ('hops', lambda ind: ind.get_total_communication_hops(), -1.0)
-        ]
-    
-    def eval_list():
-        return [func[0] for func in self.__funcs]
+def initialization_with_solution(solution, constructor):
+    return solution(constructor())
 
-    def evaluate(individual):
-        return [self.func[1](individual) for func in self.__funcs]
+#--------------------------------------------------------------
+def wrapper(func, args):
+    return func(*args)
 
-    def weights():
-        return tuple(self.func[2] for func in self.__funcs)
-
+#--------------------------------------------------------------
+def my_multiprocessing_map(pool, func, *iterable):
+    return pool.map(partial(wrapper, func), [elements for elements in zip(*iterable)])
 
 #--------------------------------------------------------------
 class GA:
@@ -195,16 +183,18 @@ class GA:
         self.toolbox = base.Toolbox()
 
         # create evaluation tool
-        eval_tool = Evaluator()
+        self.eval_tool = Evaluator()
 
         # instance settings
-        creator.create("Fitness", base.Fitness, weights=eval_tool.weights())
+        creator.create("Fitness", base.Fitness, weights=self.eval_tool.weights())
         creator.create("Individual", AllocatorUnit, fitness=creator.Fitness)
 
         # toolbox settings
-        self.toolbox.register("individual", creator.Individual, None, seed)
-        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.Individual)
-        self.toolbox.register("evaluate", eval_tool.evaluate)
+        self.toolbox.register("empty_individual", creator.Individual, None, seed)
+        self.toolbox.register("individual", initialization_with_solution, \
+                              oplib.generate_initial_solution, self.toolbox.empty_individual)
+        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
+        self.toolbox.register("evaluate", self.eval_tool.evaluate)
         self.toolbox.register("mate", cx_uniform)
         self.toolbox.register("mutate", mut_swap)
         self.toolbox.register("select", tools.selTournamentDCD)
@@ -215,3 +205,8 @@ class GA:
         self.stats.register("min", numpy.min, axis=0)
         self.stats.register("max", numpy.max, axis=0)
 
+        # logbook settings
+        self.logbook = tools.Logbook()
+        self.logbook.header = ["gen", "evals"] + self.eval_tool.eval_list()
+        for eval_name in self.eval_tool.eval_list():
+            self.logbook.chapters[eval_name].header = "min", "avg", "max"
