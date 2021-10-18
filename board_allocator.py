@@ -159,6 +159,7 @@ class BoardAllocator:
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time, method):
+        print("selected method: {}".format(method))
         if method.lower() == '2-opt':
             self.au = alns.alns2(self.au, max_execution_time)
         elif method.lower() == 'alns':

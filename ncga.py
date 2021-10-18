@@ -38,6 +38,7 @@ class NCGA(GA):
 
         hall_of_fame = tools.ParetoFront()
         gen = 0
+        mate_pb_array = [self.mate_pb] * self.offspring_num
         mut_pb_array = [self.mutation_pb] * self.offspring_num
 
         # start timer
@@ -71,7 +72,7 @@ class NCGA(GA):
             elif self.sort_method == 'random':
                 index = random.randrange(len(self.eval_tool.eval_list()))
             parents = sorted(pop, key=lambda ind: ind.fitness.values[index])[0:self.offspring_num]
-            offsprings = list(itertools.chain.from_iterable(self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2])))
+            offsprings = list(itertools.chain.from_iterable(self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
 
             # offsprings' mutation
             self.toolbox.map(self.toolbox.mutate, offsprings, mut_pb_array)
