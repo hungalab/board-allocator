@@ -89,11 +89,11 @@ class NSGA2(GA):
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            # update hall of fame
-            hall_of_fame.update(pop)
-
             # selection
             pop = self.toolbox.select(pop, self.pop_num)
+
+            # update hall of fame
+            hall_of_fame.update(pop)
 
             # record
             record = self.stats.compile(pop)
