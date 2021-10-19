@@ -12,17 +12,20 @@ from galib import GA, my_multiprocessing_map
 
 #--------------------------------------------------------------
 class NCGA(GA):
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.5, pop_num=40, offspring_num=None, sort_method='cyclic'):
+    def __init__(self, seed, mate_pb=1, mutation_pb=0.5, archive_size=40, \
+                 offspring_size=None, sort_method='cyclic'):
         super().__init__(seed)
         self.toolbox.register("select", tools.selSPEA2)
         self.mate_pb = mate_pb
         self.mutation_pb = mutation_pb
-        self.pop_num = pop_num
+        self.pop_num = archive_size
 
-        if pop_num % 2 == 0:
-            self.offspring_num = pop_num
+        if offspring_size is None:
+            self.offspring_size = archive_size - (archive_size % 2)
+        elif offspring_size % 2 == 0:
+            self.offspring_size = self.offspring_size
         else:
-            self.offspring_num = pop_num - 1
+            ValueError("offspring_size must be a multiple of 2.")
 
         if sort_method in ['cyclic', 'random']:
             self.sort_method = sort_method
@@ -38,8 +41,8 @@ class NCGA(GA):
 
         hall_of_fame = tools.ParetoFront()
         gen = 0
-        mate_pb_array = [self.mate_pb] * self.offspring_num
-        mut_pb_array = [self.mutation_pb] * self.offspring_num
+        mate_pb_array = [self.mate_pb] * self.offspring_size
+        mut_pb_array = [self.mutation_pb] * self.offspring_size
 
         # start timer
         start_time = time.time()
@@ -71,8 +74,9 @@ class NCGA(GA):
                 index = (gen - 1) % len(self.eval_tool.eval_list())
             elif self.sort_method == 'random':
                 index = random.randrange(len(self.eval_tool.eval_list()))
-            parents = sorted(pop, key=lambda ind: ind.fitness.values[index])[0:self.offspring_num]
-            offsprings = list(itertools.chain.from_iterable(self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
+            parents = sorted(pop, key=lambda ind: ind.fitness.values[index])[0:self.offspring_size]
+            offsprings = list(itertools.chain.from_iterable(\
+                          self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
 
             # offsprings' mutation
             self.toolbox.map(self.toolbox.mutate, offsprings, mut_pb_array)
