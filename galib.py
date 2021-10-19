@@ -190,6 +190,26 @@ def my_multiprocessing_map(pool, func, *iterable):
     return pool.map(partial(wrapper, func), [elements for elements in zip(*iterable)])
 
 #--------------------------------------------------------------
+def mate_and_mutate(mate, mutate, parent0, parent1, mate_pb, mut_pb):
+    child0, child1 = mate(parent0, parent1, mate_pb)
+    child0, = mutate(child0, mut_pb)
+    child1, = mutate(child1, mut_pb)
+    return child0, child1
+
+#--------------------------------------------------------------
+def mate_or_mutate(mate, mutate, parent0, parent1, mate_pb, mut_pb):
+    if mate_pb + mut_pb != 1:
+        ValueError("The sum of the probabilities of mate and mutation must be 1.")
+
+    if random.random() <= mate_pb:
+        child0, child1 = mate(parent0, parent1, 1)
+    else:
+        child0, = mutate(child0, 1)
+        child1, = mutate(child1, 1)
+
+    return child0, child1
+
+#--------------------------------------------------------------
 class GA:
     def __init__(self, seed):
         self.toolbox = base.Toolbox()
