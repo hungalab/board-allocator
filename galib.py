@@ -167,8 +167,7 @@ def mut_swap(individual, mut_pb):
         raise ValueError("Specify a value between 0 and 1.")
     
     if random.random() < mut_pb:
-        vNode = random.choice(individual.allocating_vNode_list)
-        oplib.node_swap(individual, vNode.vNode_id)
+        oplib.node_swap(individual)
 
     return individual,
 
