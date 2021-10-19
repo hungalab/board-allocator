@@ -91,13 +91,18 @@ def cx_by_mask(parent0, parent1, mask):
                 if recv_pair.path is not None:
                     oplib.pair_deallocation(child, recv_pair.pair_id)
 
+    # allocate unallocated vNodes
     for vNode in child.allocating_vNode_list:
         if vNode.rNode_id is None:
             oplib.random_node_allocation(child, vNode.vNode_id)
-    
+
+    # allocate unallocated pairs
     for pair in child.allocating_pair_list:
         if pair.path is None:
             oplib.random_pair_allocation(child, pair.pair_id)
+
+    # delete the fitness
+    del child.fitness.values
     
     return child
 
@@ -168,6 +173,7 @@ def mut_swap(individual, mut_pb):
     
     if random.random() < mut_pb:
         oplib.node_swap(individual)
+        del individual.fitness.values
 
     return individual,
 

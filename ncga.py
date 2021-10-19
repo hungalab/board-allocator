@@ -80,10 +80,6 @@ class NCGA(GA):
 
             # offsprings' mutation
             self.toolbox.map(self.toolbox.mutate, offsprings, mut_pb_array)
-
-            # delete offsprings' fitness
-            for ind in offsprings:
-                del ind.fitness.values
             
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]

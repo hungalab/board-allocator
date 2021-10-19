@@ -19,7 +19,7 @@ class NSGA2(GA):
         self.mutation_pb = mutation_pb
         self.pop_num = archive_size
         if offspring_size is None:
-            self.offspring_size = pop_num - (pop_num % 4)
+            self.offspring_size = archive_size - (archive_size % 4)
         elif offspring_size % 4 == 0:
             self.offspring_size = offspring_size
         else:
@@ -80,10 +80,6 @@ class NSGA2(GA):
 
             # offsprings' mutation
             self.toolbox.map(self.toolbox.mutate, offsprings, mut_pb_array)
-
-            # delete offsprings' fitness
-            for ind in offsprings:
-                del ind.fitness.values
             
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
