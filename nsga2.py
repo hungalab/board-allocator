@@ -34,7 +34,7 @@ class NSGA2(GA):
         hall_of_fame = tools.ParetoFront()
         gen = 0
         mate_pb_array = [self.mate_pb] * self.offspring_size
-        mut_pb_array = [self.mutation_pb] * (self.pop_num + self.offspring_size)
+        mut_pb_array = [self.mutation_pb] * self.offspring_size
 
         # start timer
         start_time = time.time()
@@ -78,19 +78,18 @@ class NSGA2(GA):
             # generate offsprings
             offsprings = list(itertools.chain.from_iterable(self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
 
-            # mutation
-            pop = pop + offsprings
-            pop = list(itertools.chain.from_iterable(\
-                   self.toolbox.map(self.toolbox.mutate, pop, mut_pb_array)))
+            # offsprings' mutation
+            offsprings = list(itertools.chain.from_iterable(\
+                          map(self.toolbox.mutate, offsprings, mut_pb_array)))
             
             # evatuate offsprings
-            invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+            invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
             fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
             for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
             # selection
-            pop = self.toolbox.select(pop, self.pop_num)
+            pop = self.toolbox.select(pop + offsprings, self.pop_num)
 
             # update hall of fame
             hall_of_fame.update(pop)

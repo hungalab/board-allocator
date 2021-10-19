@@ -24,17 +24,21 @@ def parser():
     parser.add_argument('-m', help='', default=0, type=int)
     parser.add_argument('-ho', help='', default=0, type=int)
     parser.add_argument('--method', help='method to use', default='NSGA2')
+    parser.add_argument('-p', help='# of processes to use', default=1, type=int)
 
     args = parser.parse_args()
 
     if not os.path.isfile(args.t):
-        raise FileNotFoundError("Error: {0:s} was not found.".format(args.t))
+        raise FileNotFoundError("{0:s} was not found.".format(args.t))
 
     if not os.path.isfile(args.c):
-        raise FileNotFoundError("Error: {0:s} was not found.".format(args.c))
+        raise FileNotFoundError("{0:s} was not found.".format(args.c))
     
     if (args.s + args.m + args.ho <= 0):
-        raise ValueError("Error: Total execution time must be greater than 0 second.")
+        raise ValueError("Total execution time must be greater than 0 second.")
+
+    if args.p < 1:
+        raise ValueError("The -p option must be a natural number.")
     
     return args
 
@@ -158,7 +162,7 @@ class BoardAllocator:
         self.au.add_app(app)
     
     ##---------------------------------------------------------
-    def run_optimization(self, max_execution_time, method):
+    def run_optimization(self, max_execution_time, method, process_num=1):
         print("selected method: {}".format(method))
         if method.lower() == '2-opt':
             self.au = alns.alns2(self.au, max_execution_time)
@@ -167,13 +171,13 @@ class BoardAllocator:
         elif method.lower() == 'nsga2':
             seed = self.au.save_au()
             nsga2 = NSGA2(seed)
-            hall_of_fame, logbook = nsga2.run(max_execution_time, 8)
+            hall_of_fame, logbook = nsga2.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
         elif method.lower() == 'ncga':
             seed = self.au.save_au()
             ncga = NCGA(seed)
-            hall_of_fame, logbook = ncga.run(max_execution_time, 8)
+            hall_of_fame, logbook = ncga.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
     
@@ -199,6 +203,6 @@ if __name__ == '__main__':
     args = parser()
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method)
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
     #actor.print_result()
     print(" ### OVER ### ")
