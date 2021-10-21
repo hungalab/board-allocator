@@ -284,5 +284,15 @@ class AllocatorUnit:
             print(" --------------------------------------------------- ")
     
     ##---------------------------------------------------------
+    def __eq__(self, other):
+        for vNode_id in self.vNode_dict.keys():
+            if self.vNode_dict[vNode_id].rNode_id != other.vNode_dict[vNode_id].rNode_id:
+                return False
+        
+        for pair_id in self.pair_dict.keys():
+            if self.pair_dict[pair_id].path != other.pair_dict[pair_id].path:
+                return False
+
+    ##---------------------------------------------------------
     def __deepcopy__(self, memo):
         return pickle.loads(pickle.dumps(self, pickle.HIGHEST_PROTOCOL))

@@ -36,15 +36,15 @@ def alns(au, max_execution_time):
         slot_num = au.get_slot_num()
         total_hops = au.get_total_communication_hops()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, \
-                             hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, \
-                             hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
@@ -92,15 +92,15 @@ def alns2(au, max_execution_time):
         slot_num = au.get_slot_num()
         total_hops = au.get_total_communication_hops()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, \
-                             hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, \
-                             hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
             best = au.save_au()
             best_slot_num = slot_num
             best_total_hops = total_hops
