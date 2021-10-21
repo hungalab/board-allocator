@@ -11,20 +11,22 @@ from deap import tools
 from galib import GA, my_multiprocessing_map
 
 #--------------------------------------------------------------
-class NSGA2(GA):
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.3, archive_size=40, offspring_size=None):
+class SPEA2(GA):
+    def __init__(self, seed, mate_pb=1, mutation_pb=0.3, archive_size=40, \
+                 offspring_size=None):
         super().__init__(seed)
-        self.toolbox.register("select", tools.selNSGA2)
+        self.toolbox.register("select", tools.selSPEA2)
         self.mate_pb = mate_pb
         self.mutation_pb = mutation_pb
         self.pop_num = archive_size
+
         if offspring_size is None:
-            self.offspring_size = archive_size - (archive_size % 4)
-        elif offspring_size % 4 == 0:
-            self.offspring_size = offspring_size
+            self.offspring_size = archive_size - (archive_size % 2)
+        elif offspring_size % 2 == 0:
+            self.offspring_size = self.offspring_size
         else:
-            ValueError("offspring_size must be a multiple of 4.")
-    
+            ValueError("offspring_size must be a multiple of 2.")
+
     ##---------------------------------------------------------
     def run(self, exectution_time, process_num=1):
         # multiprocessing settings
@@ -34,7 +36,7 @@ class NSGA2(GA):
 
         hall_of_fame = tools.ParetoFront()
         gen = 0
-        mate_pb_array = [self.mate_pb] * (self.offspring_size //2)
+        mate_pb_array = [self.mate_pb] * (self.offspring_size // 2)
         mut_pb_array = [self.mutation_pb] * self.offspring_size
 
         # start timer
@@ -49,7 +51,7 @@ class NSGA2(GA):
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
-        # assign the crowding distance
+        # sort pop according to a strength Pareto scheme
         pop = self.toolbox.select(pop, len(pop))
 
         # update hall of fame
@@ -65,19 +67,10 @@ class NSGA2(GA):
             # uppdate generation number
             gen += 1
 
-            # binary tournament selection
-            parents = list()
-            tournament_max_length = len(pop) - (len(pop) % 4)
-            max_loop_index = self.offspring_size // tournament_max_length
-            for i in range(max_loop_index + 1):
-                if i != max_loop_index:
-                    length = tournament_max_length
-                else:
-                    length = self.offspring_size - (tournament_max_length * max_loop_index)
-                parents += tools.selTournamentDCD(pop, length)
-            
             # generate offsprings
-            offsprings = list(itertools.chain.from_iterable(
+            length = len(pop)
+            parents = [pop[min(random.sample(range(length), 2))] for _ in range(self.offspring_size)]
+            offsprings = list(itertools.chain.from_iterable(\
                           map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
 
             # offsprings' mutation
@@ -91,6 +84,7 @@ class NSGA2(GA):
                 ind.fitness.values = fit
 
             # selection
+            random.shuffle(pop) # to prevent the superiority of the same rank from being fixed
             pop = self.toolbox.select(pop + offsprings, self.pop_num)
 
             # update hall of fame
@@ -107,5 +101,3 @@ class NSGA2(GA):
             pool.join()
     
         return hall_of_fame, self.logbook
-
-

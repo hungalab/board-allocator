@@ -14,6 +14,7 @@ from allocatorunit import AllocatorUnit, App, Pair, VNode, Flow
 import alns
 from nsga2 import NSGA2
 from ncga import NCGA
+from spea2 import SPEA2
 
 ##---------------------------------------------------------
 def parser():
@@ -180,6 +181,14 @@ class BoardAllocator:
             hall_of_fame, logbook = ncga.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+        elif method.lower() == 'spea2':
+            seed = self.au.save_au()
+            spea2 = SPEA2(seed)
+            hall_of_fame, logbook = spea2.run(max_execution_time, process_num)
+            print(logbook.stream)
+            print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+        else:
+            ValueError("Invalid optimization method name.")
     
     ##---------------------------------------------------------
     def print_result(self):

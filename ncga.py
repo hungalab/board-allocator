@@ -32,7 +32,7 @@ class NCGA(GA):
         else:
             ValueError("Invalid sort_method.")
 
-    
+    ##---------------------------------------------------------
     def run(self, exectution_time, process_num=1):
         # multiprocessing settings
         if process_num != 1:
