@@ -197,15 +197,12 @@ def mate_and_mutate(mate, mutate, parent0, parent1, mate_pb, mut_pb):
     return child0, child1
 
 #--------------------------------------------------------------
-def mate_or_mutate(mate, mutate, parent0, parent1, mate_pb, mut_pb):
-    if mate_pb + mut_pb != 1:
-        ValueError("The sum of the probabilities of mate and mutation must be 1.")
-
+def mate_or_mutate(parent0, parent1, mate_pb):
     if random.random() <= mate_pb:
-        child0, child1 = mate(parent0, parent1, 1)
+        child0, child1 = cx_uniform(parent0, parent1, 1)
     else:
-        child0, = mutate(child0, 1)
-        child1, = mutate(child1, 1)
+        child0, = mut_swap(parent0, 1)
+        child1, = mut_swap(parent1, 1)
 
     return child0, child1
 
