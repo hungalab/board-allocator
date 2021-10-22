@@ -172,7 +172,7 @@ def mut_swap(individual, mut_pb):
         raise ValueError("Specify a value between 0 and 1.")
     
     if random.random() < mut_pb:
-        oplib.node_swap(individual)
+        oplib.node_swap(copy.deepcopy(individual))
         del individual.fitness.values
 
     return individual,
