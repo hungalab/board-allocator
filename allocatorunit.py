@@ -292,6 +292,8 @@ class AllocatorUnit:
         for pair_id in self.pair_dict.keys():
             if self.pair_dict[pair_id].path != other.pair_dict[pair_id].path:
                 return False
+        
+        return True
 
     ##---------------------------------------------------------
     def __deepcopy__(self, memo):
