@@ -103,6 +103,9 @@ def cx_by_mask(parent0, parent1, mask):
 
     # delete the fitness
     del child.fitness.values
+
+    # slot_list invalidation
+    child.slot_valid = False
     
     return child
 
@@ -171,11 +174,13 @@ def mut_swap(individual, mut_pb):
     if not 0 <= mut_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
     
+    ind = copy.deepcopy(individual)
+    
     if random.random() < mut_pb:
-        oplib.node_swap(copy.deepcopy(individual))
-        del individual.fitness.values
+        oplib.node_swap(ind)
+        del ind.fitness.values
 
-    return individual,
+    return ind,
 
 #--------------------------------------------------------------
 def initialization_with_solution(solution, constructor):
