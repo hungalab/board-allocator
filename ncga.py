@@ -12,7 +12,7 @@ from galib import GA, my_multiprocessing_map
 
 #--------------------------------------------------------------
 class NCGA(GA):
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.3, archive_size=40, \
+    def __init__(self, seed, mate_pb=1, mutation_pb=0.5, archive_size=40, \
                  offspring_size=None, sort_method='cyclic'):
         super().__init__(seed)
         self.toolbox.register("select", tools.selSPEA2)
@@ -25,12 +25,12 @@ class NCGA(GA):
         elif offspring_size % 2 == 0:
             self.offspring_size = self.offspring_size
         else:
-            ValueError("offspring_size must be a multiple of 2.")
+            raise ValueError("offspring_size must be a multiple of 2.")
 
         if sort_method in ['cyclic', 'random']:
             self.sort_method = sort_method
         else:
-            ValueError("Invalid sort_method.")
+            raise ValueError("Invalid sort_method.")
 
     ##---------------------------------------------------------
     def run(self, exectution_time, process_num=1):
@@ -90,6 +90,14 @@ class NCGA(GA):
 
             # selection
             pop = self.toolbox.select(pop + offsprings, self.pop_num)
+
+            ## insert random individuals
+            #rand_pop = self.toolbox.population(20)
+            #fitnesses = self.toolbox.map(self.toolbox.evaluate, rand_pop)
+            #for ind, fit in zip(rand_pop, fitnesses):
+            #    ind.fitness.values = fit
+            #pop += rand_pop
+            #invalid_ind += rand_pop
 
             # update hall of fame
             hall_of_fame.update(pop)

@@ -23,7 +23,7 @@ class NSGA2(GA):
         elif offspring_size % 4 == 0:
             self.offspring_size = offspring_size
         else:
-            ValueError("offspring_size must be a multiple of 4.")
+            raise ValueError("offspring_size must be a multiple of 4.")
     
     ##---------------------------------------------------------
     def run(self, exectution_time, process_num=1):

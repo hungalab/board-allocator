@@ -25,7 +25,7 @@ class SPEA2(GA):
         elif offspring_size % 2 == 0:
             self.offspring_size = self.offspring_size
         else:
-            ValueError("offspring_size must be a multiple of 2.")
+            raise ValueError("offspring_size must be a multiple of 2.")
 
     ##---------------------------------------------------------
     def run(self, exectution_time, process_num=1):

@@ -175,20 +175,26 @@ class BoardAllocator:
             hall_of_fame, logbook = nsga2.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            for i, ind in enumerate(hall_of_fame):
+                print("{}: {}".format(i, ind.fitness.values))
         elif method.lower() == 'ncga':
             seed = self.au.save_au()
             ncga = NCGA(seed)
             hall_of_fame, logbook = ncga.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            for i, ind in enumerate(hall_of_fame):
+                print("{}: {}".format(i, ind.fitness.values))
         elif method.lower() == 'spea2':
             seed = self.au.save_au()
             spea2 = SPEA2(seed)
             hall_of_fame, logbook = spea2.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            for i, ind in enumerate(hall_of_fame):
+                print("{}: {}".format(i, ind.fitness.values))
         else:
-            ValueError("Invalid optimization method name.")
+            raise ValueError("Invalid optimization method name.")
     
     ##---------------------------------------------------------
     def print_result(self):
