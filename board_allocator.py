@@ -16,6 +16,10 @@ from nsga2 import NSGA2
 from ncga import NCGA
 from spea2 import SPEA2
 
+# for debug
+from deap import tools
+from evaluator import Evaluator
+
 ##---------------------------------------------------------
 def parser():
     parser = argparse.ArgumentParser(description='board allocator')
@@ -175,24 +179,39 @@ class BoardAllocator:
             hall_of_fame, logbook = nsga2.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            indbook = tools.Logbook()
+            eval_name_list = Evaluator().eval_list()
+            indbook.header = ['index'] + eval_name_list
             for i, ind in enumerate(hall_of_fame):
-                print("{}: {}".format(i, ind.fitness.values))
+                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
+                indbook.record(index=i, **record)
+            print(indbook.stream)
         elif method.lower() == 'ncga':
             seed = self.au.save_au()
             ncga = NCGA(seed)
             hall_of_fame, logbook = ncga.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            indbook = tools.Logbook()
+            eval_name_list = Evaluator().eval_list()
+            indbook.header = ['index'] + eval_name_list
             for i, ind in enumerate(hall_of_fame):
-                print("{}: {}".format(i, ind.fitness.values))
+                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
+                indbook.record(index=i, **record)
+            print(indbook.stream)
         elif method.lower() == 'spea2':
             seed = self.au.save_au()
             spea2 = SPEA2(seed)
             hall_of_fame, logbook = spea2.run(max_execution_time, process_num)
             print(logbook.stream)
             print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+            indbook = tools.Logbook()
+            eval_name_list = Evaluator().eval_list()
+            indbook.header = ['index'] + eval_name_list
             for i, ind in enumerate(hall_of_fame):
-                print("{}: {}".format(i, ind.fitness.values))
+                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
+                indbook.record(index=i, **record)
+            print(indbook.stream)
         else:
             raise ValueError("Invalid optimization method name.")
     

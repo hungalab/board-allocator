@@ -2,6 +2,9 @@ import pickle
 
 import networkx as nx
 
+from mcc import mcc
+from graphillion import GraphSet
+
 #--------------------------------------------------------------
 class App:
     def __init__(self, app_id, vNode_list, flow_list, pair_list, communicationFile):
@@ -215,14 +218,41 @@ class AllocatorUnit:
         return pickle.loads(pickle.dumps(self.slot_list, pickle.HIGHEST_PROTOCOL))
 
     ##---------------------------------------------------------
-    def get_slot_num(self):
-        self.slot_allocation()
-        return len(self.slot_list)
+    #def get_slot_num(self):
+    #    self.slot_allocation()
+    #    return len(self.slot_list)
+
+    ##---------------------------------------------------------
+    def get_optimal_slot_num(self):
+        for flow in self.flow_dict.values():
+            flow.make_flow_graph()
+        self.slot_valid = True
+        universe = [(i, j) for i, fi in self.flow_dict.items() for j, fj in self.flow_dict.items() if i < j and nx.number_of_edges(nx.intersection(fi.flow_graph, fj.flow_graph)) == 0]
+        if universe == []:
+            return len(self.flow_dict)
+        node_set = set(self.flow_dict.keys())
+        GraphSet.set_universe(universe)
+        result = mcc(len(node_set), node_set)
+        return len(result)
     
+    ##---------------------------------------------------------
+    def get_greedy_slot_num(self):
+        for flow in self.flow_dict.values():
+            flow.make_flow_graph()
+        self.slot_valid = True
+        universe = [(i, j) for i, fi in self.flow_dict.items() for j, fj in self.flow_dict.items() if i < j and nx.number_of_edges(nx.intersection(fi.flow_graph, fj.flow_graph)) != 0]
+        node_set = set(self.flow_dict.keys())
+        graph = nx.Graph()
+        graph.add_nodes_from(node_set)
+        graph.add_edges_from(universe)
+        coloring = nx.coloring.greedy_color(graph, strategy='saturation_largest_first')
+        return len(set(coloring.values()))
+
     ##---------------------------------------------------------
     def get_total_communication_hops(self):
         self.slot_allocation()
-        return sum([nx.number_of_edges(slot.graph) for slot in self.slot_list])
+        return sum([nx.number_of_edges(flow.flow_graph) for flow in self.flow_dict.values()])
+        #return sum([nx.number_of_edges(slot.graph) for slot in self.slot_list])
     
     ##---------------------------------------------------------
     def board_num_used_by_allocating_app(self):
