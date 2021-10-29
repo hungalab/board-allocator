@@ -38,6 +38,8 @@ class NCGA(GA):
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
             self.toolbox.register("map", my_multiprocessing_map, pool)
+        elif process_num == 1:
+            self.toolbox.register("map", map)
 
         hall_of_fame = tools.ParetoFront()
         gen = 0

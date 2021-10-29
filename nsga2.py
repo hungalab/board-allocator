@@ -8,11 +8,11 @@ from deap import tools
 #import networkx as nx
 
 # my library
-from galib import GA, my_multiprocessing_map
+from galib import GA, my_multiprocessing_map, mate_or_mutate
 
 #--------------------------------------------------------------
 class NSGA2(GA):
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.3, archive_size=40, offspring_size=None):
+    def __init__(self, seed, mate_pb=0.7, mutation_pb=0.3, archive_size=40, offspring_size=None):
         super().__init__(seed)
         self.toolbox.register("select", tools.selNSGA2)
         self.mate_pb = mate_pb
@@ -31,11 +31,15 @@ class NSGA2(GA):
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
             self.toolbox.register("map", my_multiprocessing_map, pool)
+        elif process_num == 1:
+            self.toolbox.register("map", map)
 
         hall_of_fame = tools.ParetoFront()
         gen = 0
         mate_pb_array = [self.mate_pb] * (self.offspring_size //2)
         mut_pb_array = [self.mutation_pb] * self.offspring_size
+        mate_array = [self.toolbox.mate] * (self.offspring_size // 2)
+        mutate_array = [self.toolbox.mutate] * (self.offspring_size // 2)
 
         # start timer
         start_time = time.time()
@@ -76,13 +80,17 @@ class NSGA2(GA):
                     length = self.offspring_size - (tournament_max_length * max_loop_index)
                 parents += tools.selTournamentDCD(pop, length)
             
-            # generate offsprings
-            offsprings = list(itertools.chain.from_iterable(
-                          map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
+
+            #offsprings = list(itertools.chain.from_iterable(
+            #              map(mate_or_mutate, mate_array, mutate_array, 
+            #                  parents[::2], parents[1::2], mate_pb_array)))
+            
+            offsprings = list(itertools.chain.from_iterable(\
+                          map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
 
             # offsprings' mutation
-            offsprings = list(itertools.chain.from_iterable(\
-                          map(self.toolbox.mutate, offsprings, mut_pb_array)))
+            offsprings += list(itertools.chain.from_iterable(\
+                          map(self.toolbox.mutate, pop, [1] * len(pop))))
             
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
@@ -92,6 +100,15 @@ class NSGA2(GA):
 
             # selection
             pop = self.toolbox.select(pop + offsprings, self.pop_num)
+
+            # insert random individuals
+            rand_pop = self.toolbox.population(20)
+            fitnesses = self.toolbox.map(self.toolbox.evaluate, rand_pop)
+            for ind, fit in zip(rand_pop, fitnesses):
+                ind.fitness.values = fit
+            rand_pop = self.toolbox.select(rand_pop, len(rand_pop))
+            pop += rand_pop
+            invalid_ind += rand_pop
 
             # update hall of fame
             hall_of_fame.update(pop)
