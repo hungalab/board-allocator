@@ -4,6 +4,7 @@ import sys, traceback
 import os
 import os.path
 import shutil
+import copy
 import numpy as np
 import collections
 from collections import OrderedDict
@@ -556,7 +557,7 @@ class cstgen:
     ##---------------------------------------------------------
     def table(self, board:str):
         index = self.topo_sws_uni.index(FIC_LIST.index(board))
-        return self.tableList[index]
+        return copy.deepcopy(self.tableList[index])
 
 #--------------------------------------------------------------
 class cstgenCaller:

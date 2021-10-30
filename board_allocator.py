@@ -3,6 +3,7 @@ import json
 import os
 import os.path
 import shutil
+import copy
 import numpy as np
 from collections import OrderedDict
 
@@ -48,6 +49,12 @@ def parser():
     return args
 
 #--------------------------------------------------------------
+class AppVTable:
+    def __init__(self, label2vNode_id, label2flow_id):
+        self.label2vNode_id = label2vNode_id
+        self.label2flow_id = label2flow_id
+
+#--------------------------------------------------------------
 class BoardAllocator:
     def __init__(self, topologyFile):
         # define variable
@@ -56,6 +63,8 @@ class BoardAllocator:
         ## virtualization of the topology file
         self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
         self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
+        ## virtualization of apps
+        self.app_id2vtable = {} # dict: (app_id) |-> (virtualization table for app_id)
         ## id generators
         self.__vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self.__pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
@@ -89,28 +98,28 @@ class BoardAllocator:
 
     # genaration of vNode_id: it is used only when you create a new VNode
     ##---------------------------------------------------------
-    def generate_vNode_id(self):
+    def __generate_vNode_id(self):
         givenId = self.__vNode_id
         self.__vNode_id += 1
         return givenId
     
     # genaration of pair_id: it is used only when you create a new Pair
     ##---------------------------------------------------------
-    def generate_pair_id(self):
+    def __generate_pair_id(self):
         givenId = self.__pair_id
         self.__pair_id += 1
         return givenId
 
     # genaration of flow_id: it is used only when you find a new flow label
     ##---------------------------------------------------------
-    def generate_flow_id(self):
+    def __generate_flow_id(self):
         givenId = self.__flow_id
         self.__flow_id += 1
         return givenId
     
     # genaration of app_id: it is used only when you create a new App
     ##---------------------------------------------------------
-    def generate_app_id(self):
+    def __generate_app_id(self):
         givenId = self.__app_id
         self.__app_id += 1
         return givenId
@@ -123,10 +132,10 @@ class BoardAllocator:
         # make dictionary that convert labels to vNode_id or flow_id
         list_tmp = list(r[0] for r in comm_tmp) + list(r[1] for r in comm_tmp)
         vNode_label_list = list(set(list_tmp))
-        label2vNode_id = {label:self.generate_vNode_id() for label in vNode_label_list} # a dictionary for _id
+        label2vNode_id = {label:self.__generate_vNode_id() for label in vNode_label_list} # a dictionary for _id
         list_tmp = list(r[2] for r in comm_tmp)
         list_tmp = list(set(list_tmp))
-        label2flow_id = {label:self.generate_flow_id() for label in list_tmp} # a dictionary for flow_id
+        label2flow_id = {label:self.__generate_flow_id() for label in list_tmp} # a dictionary for flow_id
 
         # convert label to id
         comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] for pair in comm_tmp]
@@ -138,7 +147,7 @@ class BoardAllocator:
         pair_list = list()
         flow_list = list()
         for i, flow in enumerate(flow_tmp):
-            tmp_pair_list = [Pair(self.generate_pair_id(), pair[0], pair[1]) for pair in flow]
+            tmp_pair_list = [Pair(self.__generate_pair_id(), pair[0], pair[1]) for pair in flow]
             flow_list.append(Flow(i, tmp_pair_list))
             pair_list += tmp_pair_list
 
@@ -163,8 +172,9 @@ class BoardAllocator:
                     pair.dst_vNode = vNode
 
         # make App
-        app = App(self.generate_app_id(), vNode_list, flow_list, pair_list, communicationFile)
+        app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list, communicationFile)
         self.au.add_app(app)
+        self.app_id2vtable[app.app_id] = AppVTable(label2vNode_id, label2flow_id)
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time, method, process_num=1):
