@@ -14,7 +14,7 @@ def random_pair_allocation(au, pair_id):
     pair.path = path
 
     # slot_list invalidation
-    au.slot_valid = False
+    au.flow_dict_for_slot_allocation_valid = False
 
     return au
 
@@ -32,7 +32,7 @@ def pair_allocation(au, pair_id, path):
     pair.path = path
 
     # slot_list invalidation
-    au.slot_valid = False
+    au.flow_dict_for_slot_allocation_valid = False
 
     return au
 
@@ -44,7 +44,7 @@ def pair_deallocation(au, pair_id):
     pair.path = None
 
     # slot_list invalidation
-    au.slot_valid = False
+    au.flow_dict_for_slot_allocation_valid = False
 
     return au
 

@@ -6,6 +6,8 @@ import shutil
 import copy
 import numpy as np
 from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
+import random
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -20,6 +22,13 @@ from spea2 import SPEA2
 # for debug
 from deap import tools
 from evaluator import Evaluator
+
+FIG_DIR = 'figure'
+#--------------------------------------------------------------
+def clean_dir(s):
+    if os.path.isdir(s):
+        shutil.rmtree(s)
+    os.mkdir(s)
 
 ##---------------------------------------------------------
 def parser():
@@ -48,11 +57,24 @@ def parser():
     
     return args
 
+##---------------------------------------------------------
+JST = timezone(timedelta(hours=+9))
+def now():
+    return datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S (%Z)')
+
+def default_filename():
+    return datetime.now(JST).strftime('%Y-%m-%d-T%H%M-%S%f')
+
 #--------------------------------------------------------------
-class AppVTable:
-    def __init__(self, label2vNode_id, label2flow_id):
+class AppVirtualizer:
+    def __init__(self, label2vNode_id, label2flow_id, communicationFile, color):
         self.label2vNode_id = label2vNode_id
+        self.vNode_id2label = {value: key for key, value in self.label2vNode_id.items()}
         self.label2flow_id = label2flow_id
+        self.flow_id2label = {value: key for key, value in self.label2flow_id.items()}
+        self.communicationFile = communicationFile
+        self.date = now()
+        self.color = color
 
 #--------------------------------------------------------------
 class BoardAllocator:
@@ -64,12 +86,14 @@ class BoardAllocator:
         self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
         self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
         ## virtualization of apps
-        self.app_id2vtable = {} # dict: (app_id) |-> (virtualization table for app_id)
+        self.app_id2vitrualizer = {} # dict: (app_id) |-> (virtualization table for app_id)
         ## id generators
         self.__vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self.__pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
         self.__flow_id = 0 # the generator of flow_id: it is used only in generate_flow_id() method
         self.__app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
+        ## color pool for drawing
+        self.color_pool = ['red', 'cyan', 'yellow', 'orange', 'green']
 
         # make topology
         topology = nx.DiGraph()
@@ -83,10 +107,8 @@ class BoardAllocator:
         verticesNum = len(list_tmp) # number of nodes
         topology.add_nodes_from(range(verticesNum))
 
-        # make node's dictionaries
-        for i, label in enumerate(list_tmp):
-            self.node_index2label[i] = label
-            self.node_label2index[label] = i
+        self.node_index2label = {i: label for i, label in enumerate(list_tmp)}
+        self.node_label2index = {value: key for key, value in self.node_index2label.items()}
 
         # make bi-directional edges
         for e in topo_tmp:
@@ -139,16 +161,14 @@ class BoardAllocator:
 
         # convert label to id
         comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] for pair in comm_tmp]
-        flow_tmp = [[] for _ in label2flow_id]
-        for pair in comm_tmp:
-            flow_tmp[pair[2]].append((pair[0], pair[1]))
+        flow_tmp = {flow_id: [(pair[0], pair[1]) for pair in comm_tmp if pair[2] == flow_id] for flow_id in label2flow_id.values()}
         
         # make Flows and Pairs
         pair_list = list()
         flow_list = list()
-        for i, flow in enumerate(flow_tmp):
+        for flow_id, flow in flow_tmp.items():
             tmp_pair_list = [Pair(self.__generate_pair_id(), pair[0], pair[1]) for pair in flow]
-            flow_list.append(Flow(i, tmp_pair_list))
+            flow_list.append(Flow(flow_id, tmp_pair_list))
             pair_list += tmp_pair_list
 
         # make vNodes
@@ -172,9 +192,19 @@ class BoardAllocator:
                     pair.dst_vNode = vNode
 
         # make App
-        app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list, communicationFile)
+        app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list)
+        color = self.color_pool.pop(random.randrange(len(self.color_pool)))
         self.au.add_app(app)
-        self.app_id2vtable[app.app_id] = AppVTable(label2vNode_id, label2flow_id)
+        self.app_id2vitrualizer[app.app_id] = AppVirtualizer(label2vNode_id, label2flow_id, os.path.abspath(communicationFile), color)
+    
+    ##---------------------------------------------------------
+    def remove_app(self, app_id):
+        # remove from au
+        self.au.remove_app(app_id)
+        # restore color to color_pool
+        self.color_pool.append(self.app_id2vitrualizer[app_id].color)
+        # delete the virtaulizer
+        del self.app_id2vitrualizer[app_id]
     
     ##---------------------------------------------------------
     def run_optimization(self, max_execution_time, method, process_num=1):
@@ -224,29 +254,85 @@ class BoardAllocator:
             print(indbook.stream)
         else:
             raise ValueError("Invalid optimization method name.")
+        
+        self.au.apply()
+
+    ##---------------------------------------------------------
+    def show_apps(self, key=lambda app_id: True):
+        apps_book = tools.Logbook()
+        apps_book.header = ['app_id', 'communication', 'date']
+        for app_id, appv in sorted(self.app_id2vitrualizer.items(), key=lambda item: item[0]):
+            if key(app_id):
+                apps_book.record(app_id=app_id, communication=os.path.basename(appv.communicationFile), date=appv.date)
+        
+        print(apps_book.stream)
+        print()
+
+    ##---------------------------------------------------------
+    def show_nodes(self, key=lambda app_id, vNode_id, rNode_id: True):
+        nodes_book = tools.Logbook()
+        nodes_book.header = ['app_id', 'vNode_id', 'rNode_id']
+        for app_id, app in sorted(self.au.app_dict.items(), key=lambda item: item[0]):
+            for vNode in sorted(app.vNode_list, key=lambda vn: self.app_id2vitrualizer[app_id].vNode_id2label[vn.vNode_id]):
+                vNode_id = self.app_id2vitrualizer[app_id].vNode_id2label[vNode.vNode_id]
+                rNode_id = vNode.rNode_id
+                if key(app_id, vNode_id, rNode_id):
+                    nodes_book.record(app_id=app_id, vNode_id=vNode_id, rNode_id=rNode_id)
+        
+        print(nodes_book.stream)
+        print()
+    
+    ##---------------------------------------------------------
+    def show_flows(self, key=lambda app_id, flow_id, slot_id: True):
+        flows_book = tools.Logbook()
+        flows_book.header = ['app_id', 'flow_id', 'slot_id']
+        for app_id, app in sorted(self.au.app_dict.items(), key=lambda item: item[0]):
+            for flow in sorted(app.flow_list, key=lambda f: self.app_id2vitrualizer[app_id].flow_id2label[f.flow_id]):
+                flow_id = self.app_id2vitrualizer[app_id].flow_id2label[flow.flow_id]
+                slot_id = flow.slot_id
+                if key(app_id, flow_id, slot_id):
+                    flows_book.record(app_id=app_id, flow_id=flow_id, slot_id=slot_id)
+        
+        print(flows_book.stream)
+        print()
     
     ##---------------------------------------------------------
     def print_result(self):
-        print("nunber of slots: {}".format(self.au.get_slot_num()))
-        node_num = nx.number_of_nodes(self.au.topology)
-        used_node = set(self.au.temp_allocated_rNode_dict.keys())
-        pos = {}
-        for i in range(node_num):
-            pos[i] = (i // 4, i % 4)
-        node_color = list()
-        for i in range(node_num):
-            if i in used_node:
-                node_color.append('red')
-            else:
-                node_color.append('cyan')
+        self.au.print_au()
+        # drew a figure
+        ## settings for position
+        pos = {i: (-(i // 4), i % 4) for i in self.node_index2label.keys()}
+        ## settings for color
+        used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list] for app in self.au.app_dict.values()}
+        node_color = ['gainsboro' for i in self.node_index2label.keys()]
+        for app_id, used_nodes in used_nodes_for_app.items():
+            for node in used_nodes:
+                node_color[node] = self.app_id2vitrualizer[app_id].color
+        # draw
         nx.draw_networkx(self.au.topology, pos, node_color=node_color)
-        plt.show()
+        plt.savefig(os.path.join(FIG_DIR, (default_filename()+'.png')))
+        plt.close()
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
+    clean_dir(FIG_DIR)
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
     actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
-    #actor.print_result()
+    actor.show_apps()
+    actor.show_nodes()
+    actor.show_flows()
+    actor.load_app(args.c)
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
+    actor.show_apps()
+    actor.show_nodes()
+    actor.show_flows()
+    actor.print_result()
+    actor.remove_app(0)
+    actor.show_apps()
+    actor.show_nodes()
+    actor.show_flows()
+    actor.print_result()
+    
     print(" ### OVER ### ")

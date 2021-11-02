@@ -104,8 +104,8 @@ def cx_by_mask(parent0, parent1, mask):
     # delete the fitness
     del child.fitness.values
 
-    # slot_list invalidation
-    child.slot_valid = False
+    # flow_dict_for_slot_allocation_valid invalidation
+    child.flow_dict_for_slot_allocation_valid = False
     
     return child
 
