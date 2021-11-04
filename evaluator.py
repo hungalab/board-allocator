@@ -8,7 +8,7 @@ def hops(ind):
 
 #--------------------------------------------------------------
 def boards(ind):
-    return ind.board_num_used_by_allocating_app()
+    return ind.board_num_to_be_routed()
 
 #--------------------------------------------------------------
 class Evaluator:

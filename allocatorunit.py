@@ -328,7 +328,7 @@ class AllocatorUnit:
         return sum([nx.number_of_edges(flow.flow_graph) for flow in self.flow_dict.values()])
     
     ##---------------------------------------------------------
-    def board_num_used_by_allocating_app(self):
+    def board_num_to_be_routed(self):
         return len(set().union(*[pair.path for pair in self.pair_dict.values()]))
     
     ##---------------------------------------------------------

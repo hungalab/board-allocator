@@ -30,7 +30,7 @@ def clean_dir(s):
         shutil.rmtree(s)
     os.mkdir(s)
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 def parser():
     parser = argparse.ArgumentParser(description='board allocator')
     parser.add_argument('-t', help='topology file', default='fic-topo-file-cross.txt')
@@ -57,7 +57,7 @@ def parser():
     
     return args
 
-##---------------------------------------------------------
+#--------------------------------------------------------------
 JST = timezone(timedelta(hours=+9))
 def now():
     return datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S (%Z)')
@@ -82,6 +82,8 @@ class BoardAllocator:
         # define variable
         ## Allocator Unit
         self.au = None
+        ## record topology file
+        self.topology_file = os.path.abspath(topologyFile)
         ## virtualization of the topology file
         self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
         self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
@@ -160,8 +162,10 @@ class BoardAllocator:
         label2flow_id = {label:self.__generate_flow_id() for label in list_tmp} # a dictionary for flow_id
 
         # convert label to id
-        comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] for pair in comm_tmp]
-        flow_tmp = {flow_id: [(pair[0], pair[1]) for pair in comm_tmp if pair[2] == flow_id] for flow_id in label2flow_id.values()}
+        comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] \
+                    for pair in comm_tmp]
+        flow_tmp = {flow_id: [(pair[0], pair[1]) for pair in comm_tmp if pair[2] == flow_id] \
+                    for flow_id in label2flow_id.values()}
         
         # make Flows and Pairs
         pair_list = list()
@@ -193,12 +197,19 @@ class BoardAllocator:
 
         # make App
         app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list)
-        color = self.color_pool.pop(random.randrange(len(self.color_pool)))
-        self.au.add_app(app)
-        self.app_id2vitrualizer[app.app_id] = AppVirtualizer(label2vNode_id, label2flow_id, os.path.abspath(communicationFile), color)
+        if self.au.add_app(app):
+            color = self.color_pool.pop(random.randrange(len(self.color_pool)))
+            self.app_id2vitrualizer[app.app_id] \
+            = AppVirtualizer(label2vNode_id, label2flow_id, \
+                             os.path.abspath(communicationFile), color)
+            return True
+        else:
+            return False
     
     ##---------------------------------------------------------
     def remove_app(self, app_id):
+        if app_id not in self.app_id2vitrualizer.keys():
+            raise ValueError("app_id {} does not exists.".format(app_id))
         # remove from au
         self.au.remove_app(app_id)
         # restore color to color_pool
@@ -256,6 +267,15 @@ class BoardAllocator:
             raise ValueError("Invalid optimization method name.")
         
         self.au.apply()
+    
+    ##---------------------------------------------------------
+    def two_opt(self, execution_time):
+        self.au = alns.alns2(self.au, execution_time)
+        self.au.apply()
+
+    ##---------------------------------------------------------
+    def show_topology_file(self):
+        print(self.topology_file)
 
     ##---------------------------------------------------------
     def show_apps(self, key=lambda app_id: True):
@@ -297,9 +317,25 @@ class BoardAllocator:
         print()
     
     ##---------------------------------------------------------
-    def print_result(self):
-        self.au.print_au()
-        # drew a figure
+    def print_result(self, fully_desplay=False):
+        if len([vNode for vNode in self.au.vNode_dict.values() if vNode.rNode_id is not None]) == 0:
+            print("the current allocator has no running app.")
+            return
+
+        if fully_desplay:
+            self.au.print_au()
+        
+        if len([pair for pair in self.au.pair_dict.values() if pair.path is not None]) != 0:
+            print("# of slots: {}".format(self.au.get_greedy_slot_num()))
+            print("# of hops: {}".format(self.au.get_total_communication_hops()))
+            print("# of boards to be routed: {}".format(self.au.board_num_to_be_routed()))
+        else:
+            print("the current allocator has no running app with communication.")
+        
+        self.draw_current_node_status()
+    
+    ##---------------------------------------------------------
+    def draw_current_node_status(self, path=os.path.join(FIG_DIR, (default_filename()+'.png'))):
         ## settings for position
         pos = {i: (-(i // 4), i % 4) for i in self.node_index2label.keys()}
         ## settings for color
@@ -310,7 +346,7 @@ class BoardAllocator:
                 node_color[node] = self.app_id2vitrualizer[app_id].color
         # draw
         nx.draw_networkx(self.au.topology, pos, node_color=node_color)
-        plt.savefig(os.path.join(FIG_DIR, (default_filename()+'.png')))
+        plt.savefig(path)
         plt.close()
 
 #--------------------------------------------------------------
@@ -319,10 +355,10 @@ if __name__ == '__main__':
     clean_dir(FIG_DIR)
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
-    actor.show_apps()
-    actor.show_nodes()
-    actor.show_flows()
+    #actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
+    #actor.show_apps()
+    #actor.show_nodes()
+    #actor.show_flows()
     actor.load_app(args.c)
     actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, args.method, args.p)
     actor.show_apps()

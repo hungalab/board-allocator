@@ -12,5 +12,6 @@ test.png
 *.pickle
 cxtest.py
 figure/*
+save/*
 
 __pycache__
