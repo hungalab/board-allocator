@@ -101,5 +101,14 @@ class SPEA2(GA):
         if process_num != 1:
             pool.close()
             pool.join()
+
+        print(self.logbook.stream)
+        print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+        indbook = tools.Logbook()
+        indbook.header = ['index'] + self.eval_tool.eval_list()
+        for i, ind in enumerate(hall_of_fame):
+            record = {name: value for name, value in zip(self.eval_tool.eval_list(), ind.fitness.values)}
+            indbook.record(index=i, **record)
+        print(indbook.stream)
     
-        return hall_of_fame, self.logbook
+        return hall_of_fame

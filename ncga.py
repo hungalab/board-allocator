@@ -12,6 +12,8 @@ from galib import GA, my_multiprocessing_map
 
 #--------------------------------------------------------------
 class NCGA(GA):
+    SORT_METHOD_LIST = ['cyclic', 'random']
+
     def __init__(self, seed, mate_pb=1, mutation_pb=0.5, archive_size=40, \
                  offspring_size=None, sort_method='cyclic'):
         super().__init__(seed)
@@ -27,7 +29,7 @@ class NCGA(GA):
         else:
             raise ValueError("offspring_size must be a multiple of 2.")
 
-        if sort_method in ['cyclic', 'random']:
+        if sort_method in NCGA.SORT_METHOD_LIST:
             self.sort_method = sort_method
         else:
             raise ValueError("Invalid sort_method.")
@@ -113,5 +115,14 @@ class NCGA(GA):
         if process_num != 1:
             pool.close()
             pool.join()
+        
+        print(self.logbook.stream)
+        print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+        indbook = tools.Logbook()
+        indbook.header = ['index'] + self.eval_tool.eval_list()
+        for i, ind in enumerate(hall_of_fame):
+            record = {name: value for name, value in zip(self.eval_tool.eval_list(), ind.fitness.values)}
+            indbook.record(index=i, **record)
+        print(indbook.stream)
     
-        return hall_of_fame, self.logbook
+        return hall_of_fame

@@ -14,17 +14,18 @@ from board_allocator import now, default_filename, BoardAllocator, FIG_DIR
 
 #--------------------------------------------------------------
 class FigViewer:
-    def __init__(self, quit_event, refresh_interval=100):
+    def __init__(self, quit_event, refresh_interval=500):
         self.refresh_interval = refresh_interval
         self.quit_event = quit_event
         self.root = tkinter.Tk()
         self.root.title('current node status')
         self.root.geometry("640x480")
-        self.img = tkinter.PhotoImage(file=DEFAULT_NODE_STATUS_FIG)
-        self.img_idx = 0
         self.canvas = tkinter.Canvas(width=640, height=480)
         self.canvas.place(x=0, y=0)
-        self.canvas.create_image(0, 0, image=self.img)
+        self.img = tkinter.PhotoImage(file=DEFAULT_NODE_STATUS_FIG)
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        self.canvas.create_image(canvas_width / 2, canvas_height / 2, image=self.img)
 
     ##---------------------------------------------------------
     def mainloop(self):
@@ -37,7 +38,6 @@ class FigViewer:
             self.root.destroy()
             return
 
-        self.img_idx = (self.img_idx + 1) % 2
         self.img = tkinter.PhotoImage(file=DEFAULT_NODE_STATUS_FIG)
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
@@ -73,6 +73,7 @@ class BoardManagementCLI(cmd.Cmd):
         self.ba = None
         self.fig_thread = None
         self.fig_quit_event = threading.Event()
+        self.is_saved = True
         readline.set_completer_delims(' \t\n`!@#$\\;:,?')
         if not os.path.isdir(SAVE_DIR):
             os.mkdir(SAVE_DIR)
@@ -81,7 +82,7 @@ class BoardManagementCLI(cmd.Cmd):
     def do_wipe(self, line):
         parser = argparse.ArgumentParser(prog="wipe", \
                 description='wipe the current allocator')
-        parser.add_argument('-f', '--force', action='store_true', help='flag')
+        parser.add_argument('-f', '--force', action='store_true', help='Forcibly wipe')
 
         try:
             args = parser.parse_args(args=line.split())
@@ -93,8 +94,17 @@ class BoardManagementCLI(cmd.Cmd):
             ans = input("Do you want to wipe it? [y/n]: ")
             while ans != 'y' and ans != 'n':
                 ans = input("Please input y or n: ")
+            if ans == 'n':
+                return None
+            if not self.is_saved:
+                ans = input("Do you save the current allocator? [y/n]: ")
+                while ans != 'y' and ans != 'n':
+                    ans = input("Please input y or n: ")
+                if ans == 'y':
+                    self.do_save()
         
         self.ba = None
+        self.is_saved = True
     
     ##---------------------------------------------------------
     def complete_wipe(self, text, line, begidx, endidx):
@@ -108,19 +118,21 @@ class BoardManagementCLI(cmd.Cmd):
                 description='initialization your allocator')
         parser.add_argument('topo_file', nargs='?', default='fic-topo-file-cross.txt', \
                             help='topology file')
+        parser.add_argument('-f', '--force', action='store_true', help='Forcibly initialize')
 
-        if self.ba is not None:
+        if (self.ba is not None) and (not args.force):
             print("Other allocator has already been loaded.")
-            ans = input("Set up a new allocator? [y/n]: ")
+            ans = input("Wipe the currrent allocator and set up a new one? [y/n]: ")
             while ans != 'y' and ans != 'n':
                 ans = input("Please input y or n: ")
             if ans == 'n':
                 return None
-            ans = input("Do you save the current allocator? [y/n]: ")
-            while ans != 'y' and ans != 'n':
-                ans = input("Please input y or n: ")
-            if ans == 'y':
-                self.do_save()
+            if not self.is_saved:
+                ans = input("Do you save the current allocator? [y/n]: ")
+                while ans != 'y' and ans != 'n':
+                    ans = input("Please input y or n: ")
+                if ans == 'y':
+                    self.do_save()
         
         try:
             args = parser.parse_args(args=line.split())
@@ -129,6 +141,7 @@ class BoardManagementCLI(cmd.Cmd):
         
         self.ba = BoardAllocator(args.topo_file)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = True
     
     ##---------------------------------------------------------
     def complete_init(self, text, line, begidx, endidx):
@@ -139,6 +152,7 @@ class BoardManagementCLI(cmd.Cmd):
     def do_save(self, line=""):
         parser = argparse.ArgumentParser(prog="save", description='save the allocator')
         parser.add_argument('-o', '--output', default=None, help='output file')
+        parser.add_argument('-f', '--force', action='store_true', help='Forcibly overwrite')
     
         try:
             args = parser.parse_args(args=line.split())
@@ -150,7 +164,7 @@ class BoardManagementCLI(cmd.Cmd):
         else:
             output_file = args.output
         
-        if os.path.exists(output_file):
+        if os.path.exists(output_file) and (not args.force):
             print("The file already exists.")
             ans = input("Do you want to overwrite it? [y/n]: ")
             while ans != 'y' and ans != 'n':
@@ -159,14 +173,17 @@ class BoardManagementCLI(cmd.Cmd):
                 print("Please try again.")
                 return None
 
-        with open(os.path.join(output_file, 'wb')) as f:
-            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+        self.is_saved = True
+        with open(output_file, 'wb') as f:
+            pickle.dump(self.ba, f, protocol=pickle.HIGHEST_PROTOCOL)
         print("Save allocator to {}".format(os.path.abspath(output_file)))
 
     ##---------------------------------------------------------
     def complete_save(self, text, line, begidx, endidx):
         arg_name2Arg = {'-o': Arg(1, self._filename_completion),
-                        '--output': Arg(1, self._filename_completion)}
+                        '--output': Arg(1, self._filename_completion),
+                        '-f': Arg(0),
+                        '--force': arg(0)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
     
     ##---------------------------------------------------------
@@ -187,6 +204,7 @@ class BoardManagementCLI(cmd.Cmd):
         for f in args.comm_files:
             if self.ba.load_app(f):
                 print("{} successfully added.".format(f))
+                self.is_saved = False
             else:
                 print("Failed to add {}: too many boards.".format(f))
     
@@ -198,7 +216,7 @@ class BoardManagementCLI(cmd.Cmd):
     ##---------------------------------------------------------
     def do_rmapp(self, line):
         parser = argparse.ArgumentParser(prog="rmapp", description='remove applications')
-        parser.add_argument('app_id', nargs='+', type=int, \
+        parser.add_argument('app_id', nargs='*', type=int, \
                             help='app_id(s) you want to remove')
         parser.add_argument('--all', action='store_true', help='remove all applications')
         
@@ -214,12 +232,17 @@ class BoardManagementCLI(cmd.Cmd):
         if args.all:
             for app_id in self.ba.app_id2vitrualizer.keys():
                 self.ba.remove_app(app_id)
+                self.is_saved = False
+        elif args.app_id == []:
+            print("No application to be deleted was specified.")
         else:
             for app_id in set(args.app_id):
                 try:
                     self.ba.remove_app(app_id)
-                except ValueError:
-                    print("There is no application with an id of {}.".format(app_id))
+                except ValueError as e:
+                    print(e)
+                else:
+                    self.is_saved = False
 
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
     
@@ -278,12 +301,154 @@ class BoardManagementCLI(cmd.Cmd):
 
         self.ba.two_opt(execution_time)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = False
     
     ##---------------------------------------------------------
     def complete_twoopt(self, text, line, begidx, endidx):
         arg_name2Arg = {'-s': Arg(1),
                         '-m': Arg(1), 
                         '-ho': Arg(1)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+    
+    ##---------------------------------------------------------
+    def do_alns(self, line):
+        parser = argparse.ArgumentParser(prog="alns", \
+                description='execute alns')
+        parser.add_argument('-s', help='execution_time += int(s)', default=0, type=int)
+        parser.add_argument('-m', help='execution_time += 60 * int(m)', default=0, type=int)
+        parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init'or 'load' command.")
+            return None
+
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+        
+        execution_time = args.s + 60 * args.m + 3600 * args.ho
+        if (execution_time <= 0):
+            print("Total execution time must be greater than 0 second.")
+            return
+
+        self.ba.alns(execution_time)
+        self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = False
+    
+    ##---------------------------------------------------------
+    def complete_alns(self, text, line, begidx, endidx):
+        arg_name2Arg = {'-s': Arg(1),
+                        '-m': Arg(1), 
+                        '-ho': Arg(1)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+
+    ##---------------------------------------------------------
+    def do_nsga2(self, line):
+        parser = argparse.ArgumentParser(prog="nsga2", \
+                description='execute nsga2')
+        parser.add_argument('-s', help='execution_time += int(s)', default=0, type=int)
+        parser.add_argument('-m', help='execution_time += 60 * int(m)', default=0, type=int)
+        parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
+        parser.add_argument('-p', help='# of processes to use', default=1, type=int)
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init'or 'load' command.")
+            return None
+
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+        
+        execution_time = args.s + 60 * args.m + 3600 * args.ho
+        if (execution_time <= 0):
+            print("Total execution time must be greater than 0 second.")
+            return
+        
+        hof = self.ba.nsga2(execution_time, args.p)
+        ## self.ba.select_from_hof(hof)
+        self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = False
+    
+    ##---------------------------------------------------------
+    def complete_nsga2(self, text, line, begidx, endidx):
+        arg_name2Arg = {'-s': Arg(1),
+                        '-m': Arg(1), 
+                        '-ho': Arg(1),
+                        '-p': Arg(1)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+    
+    ##---------------------------------------------------------
+    def do_spea2(self, line):
+        parser = argparse.ArgumentParser(prog="spea2", \
+                description='execute spea2')
+        parser.add_argument('-s', help='execution_time += int(s)', default=0, type=int)
+        parser.add_argument('-m', help='execution_time += 60 * int(m)', default=0, type=int)
+        parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
+        parser.add_argument('-p', help='# of processes to use', default=1, type=int)
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init'or 'load' command.")
+            return None
+
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+        
+        execution_time = args.s + 60 * args.m + 3600 * args.ho
+        if (execution_time <= 0):
+            print("Total execution time must be greater than 0 second.")
+            return
+        
+        hof = self.ba.spea2(execution_time, args.p)
+        ## self.ba.select_from_hof(hof)
+        self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = False
+    
+    ##---------------------------------------------------------
+    def complete_spea2(self, text, line, begidx, endidx):
+        arg_name2Arg = {'-s': Arg(1),
+                        '-m': Arg(1), 
+                        '-ho': Arg(1),
+                        '-p': Arg(1)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+    
+    ##---------------------------------------------------------
+    def do_ncga(self, line):
+        parser = argparse.ArgumentParser(prog="ncga", \
+                description='execute ncga')
+        parser.add_argument('-s', help='execution_time += int(s)', default=0, type=int)
+        parser.add_argument('-m', help='execution_time += 60 * int(m)', default=0, type=int)
+        parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
+        parser.add_argument('-p', help='# of processes to use', default=1, type=int)
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init'or 'load' command.")
+            return None
+
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+        
+        execution_time = args.s + 60 * args.m + 3600 * args.ho
+        if (execution_time <= 0):
+            print("Total execution time must be greater than 0 second.")
+            return
+        
+        hof = self.ba.ncga(execution_time, args.p)
+        ## self.ba.select_from_hof(hof)
+        self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+        self.is_saved = False
+    
+    ##---------------------------------------------------------
+    def complete_ncga(self, text, line, begidx, endidx):
+        arg_name2Arg = {'-s': Arg(1),
+                        '-m': Arg(1), 
+                        '-ho': Arg(1),
+                        '-p': Arg(1)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
 
     ##---------------------------------------------------------
@@ -371,13 +536,37 @@ class BoardManagementCLI(cmd.Cmd):
         print(now())
 
     ##---------------------------------------------------------
-    def do_quit(self, _):
+    def do_exit(self, line):
+        parser = argparse.ArgumentParser(prog="exit", description='exit this CLI')
+        parser.add_argument('-i', '--inform', action='store_true', \
+                            help='inform if the current allocator is not saved')
+        
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+
+        if not self.is_saved and args.inform:
+            print("The current allocator is not saved.")
+            ans = input("Do you save the current allocator? [y/n]: ")
+            while ans != 'y' and ans != 'n':
+                ans = input("Please input y or n: ")
+            if ans == 'y':
+                self.do_save()
+            else:
+                ans = input("Do you want to exit without serving? [y/n]: ")
+                while ans != 'y' and ans != 'n':
+                    ans = input("Please input y or n: ")
+                if ans == 'n':
+                    return None
         self.fig_quit_event.set()
         return True
-
+    
     ##---------------------------------------------------------
-    def do_exit(self, _):
-        return self.do_quit(_)
+    def complete_exit(self, text, line, begidx, endidx):
+        arg_name2Arg = {'-i': Arg(0),
+                        '--inform': Arg(0)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
 
     ##---------------------------------------------------------
     @staticmethod
@@ -482,6 +671,7 @@ class BoardManagementCLI(cmd.Cmd):
     def emptyline(self):
         pass
 
+#--------------------------------------------------------------
 if __name__ == '__main__':
     shell = BoardManagementCLI()
     #print(shell.complete_command('', 'command --arg3 alpha ', 0, 0))

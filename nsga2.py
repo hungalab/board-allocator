@@ -12,7 +12,8 @@ from galib import GA, my_multiprocessing_map, mate_or_mutate
 
 #--------------------------------------------------------------
 class NSGA2(GA):
-    def __init__(self, seed, mate_pb=0.7, mutation_pb=0.3, archive_size=40, offspring_size=None):
+    def __init__(self, seed, mate_pb=0.7, mutation_pb=0.3, archive_size=40, \
+                 offspring_size=None):
         super().__init__(seed)
         self.toolbox.register("select", tools.selNSGA2)
         self.mate_pb = mate_pb
@@ -122,7 +123,16 @@ class NSGA2(GA):
         if process_num != 1:
             pool.close()
             pool.join()
+
+        print(self.logbook.stream)
+        print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
+        indbook = tools.Logbook()
+        indbook.header = ['index'] + self.eval_tool.eval_list()
+        for i, ind in enumerate(hall_of_fame):
+            record = {name: value for name, value in zip(self.eval_tool.eval_list(), ind.fitness.values)}
+            indbook.record(index=i, **record)
+        print(indbook.stream)
     
-        return hall_of_fame, self.logbook
+        return hall_of_fame
 
 

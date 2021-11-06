@@ -227,42 +227,15 @@ class BoardAllocator:
         elif method.lower() == 'nsga2':
             seed = self.au.save_au()
             nsga2 = NSGA2(seed)
-            hall_of_fame, logbook = nsga2.run(max_execution_time, process_num)
-            print(logbook.stream)
-            print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
-            indbook = tools.Logbook()
-            eval_name_list = Evaluator().eval_list()
-            indbook.header = ['index'] + eval_name_list
-            for i, ind in enumerate(hall_of_fame):
-                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
-                indbook.record(index=i, **record)
-            print(indbook.stream)
+            hall_of_fame = nsga2.run(max_execution_time, process_num)
         elif method.lower() == 'ncga':
             seed = self.au.save_au()
             ncga = NCGA(seed)
-            hall_of_fame, logbook = ncga.run(max_execution_time, process_num)
-            print(logbook.stream)
-            print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
-            indbook = tools.Logbook()
-            eval_name_list = Evaluator().eval_list()
-            indbook.header = ['index'] + eval_name_list
-            for i, ind in enumerate(hall_of_fame):
-                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
-                indbook.record(index=i, **record)
-            print(indbook.stream)
+            hall_of_fame = ncga.run(max_execution_time, process_num)
         elif method.lower() == 'spea2':
             seed = self.au.save_au()
             spea2 = SPEA2(seed)
-            hall_of_fame, logbook = spea2.run(max_execution_time, process_num)
-            print(logbook.stream)
-            print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
-            indbook = tools.Logbook()
-            eval_name_list = Evaluator().eval_list()
-            indbook.header = ['index'] + eval_name_list
-            for i, ind in enumerate(hall_of_fame):
-                record = {name: value for name, value in zip(eval_name_list, ind.fitness.values)}
-                indbook.record(index=i, **record)
-            print(indbook.stream)
+            hall_of_fame = spea2.run(max_execution_time, process_num)
         else:
             raise ValueError("Invalid optimization method name.")
         
@@ -272,6 +245,61 @@ class BoardAllocator:
     def two_opt(self, execution_time):
         self.au = alns.alns2(self.au, execution_time)
         self.au.apply()
+    
+    ##---------------------------------------------------------
+    def alns(self, execution_time):
+        self.au = alns.alns(self.au, execution_time)
+        self.au.apply()
+    
+    ##---------------------------------------------------------
+    def nsga2(self, execution_time, 
+              process_num=1, 
+              mate_pb=0.7, 
+              mutation_pb=0.3, 
+              archive_size=40, 
+              offspring_size=None
+              ):
+        seed = self.au.save_au()
+        nsga2 = NSGA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
+        hall_of_fame = nsga2.run(execution_time, process_num)
+
+        return hall_of_fame
+
+    ##---------------------------------------------------------
+    def spea2(self, execution_time, 
+              process_num=1, 
+              mate_pb=1, 
+              mutation_pb=0.3, 
+              archive_size=40, 
+              offspring_size=None
+              ):
+        seed = self.au.save_au()
+        spea2 = SPEA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
+        hall_of_fame = spea2.run(execution_time, process_num)
+
+        return hall_of_fame
+    
+    ##---------------------------------------------------------
+    def ncga(self, execution_time, 
+              process_num=1, 
+              mate_pb=0.7, 
+              mutation_pb=0.3, 
+              archive_size=40, 
+              offspring_size=None, 
+              sort_method='cyclic'
+              ):
+        seed = self.au.save_au()
+        ncga = NCGA(seed, mate_pb, mutation_pb, archive_size, offspring_size, sort_method)
+        hall_of_fame = ncga.run(execution_time, process_num)
+
+        return hall_of_fame
+
+    ##---------------------------------------------------------
+    def select_form_hof(self, index=None):
+        if index is None:
+            pass ## select index
+
+        ## TBA
 
     ##---------------------------------------------------------
     def show_topology_file(self):
@@ -339,7 +367,8 @@ class BoardAllocator:
         ## settings for position
         pos = {i: (-(i // 4), i % 4) for i in self.node_index2label.keys()}
         ## settings for color
-        used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list] for app in self.au.app_dict.values()}
+        used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list if vNode.rNode_id is not None] \
+                              for app in self.au.app_dict.values()}
         node_color = ['gainsboro' for i in self.node_index2label.keys()]
         for app_id, used_nodes in used_nodes_for_app.items():
             for node in used_nodes:
