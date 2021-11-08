@@ -9,6 +9,7 @@ from deap import tools
 
 # my library
 from galib import GA, my_multiprocessing_map
+from evaluator import Evaluator
 
 #--------------------------------------------------------------
 class SPEA2(GA):
@@ -62,7 +63,7 @@ class SPEA2(GA):
         # record
         record = self.stats.compile(pop)
         record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
-                  for i, eval_name in enumerate(self.eval_tool.eval_list())}
+                  for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), **record)
 
         while time.time() - start_time < exectution_time:
@@ -95,7 +96,7 @@ class SPEA2(GA):
             # record
             record = self.stats.compile(pop)
             record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
-                      for i, eval_name in enumerate(self.eval_tool.eval_list())}
+                      for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), **record)
 
         if process_num != 1:
@@ -105,9 +106,9 @@ class SPEA2(GA):
         print(self.logbook.stream)
         print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
         indbook = tools.Logbook()
-        indbook.header = ['index'] + self.eval_tool.eval_list()
+        indbook.header = ['index'] + Evaluator.eval_list()
         for i, ind in enumerate(hall_of_fame):
-            record = {name: value for name, value in zip(self.eval_tool.eval_list(), ind.fitness.values)}
+            record = {name: value for name, value in zip(Evaluator.eval_list(), ind.fitness.values)}
             indbook.record(index=i, **record)
         print(indbook.stream)
     

@@ -21,7 +21,6 @@ from spea2 import SPEA2
 
 # for debug
 from deap import tools
-from evaluator import Evaluator
 
 FIG_DIR = 'figure'
 #--------------------------------------------------------------

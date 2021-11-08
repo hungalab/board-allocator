@@ -216,11 +216,8 @@ class GA:
     def __init__(self, seed):
         self.toolbox = base.Toolbox()
 
-        # create evaluation tool
-        self.eval_tool = Evaluator()
-
         # instance settings
-        creator.create("Fitness", base.Fitness, weights=self.eval_tool.weights())
+        creator.create("Fitness", base.Fitness, weights=Evaluator.weights())
         creator.create("Individual", AllocatorUnit, fitness=creator.Fitness)
 
         # toolbox settings
@@ -228,7 +225,7 @@ class GA:
         self.toolbox.register("individual", initialization_with_solution, \
                               oplib.generate_initial_solution, self.toolbox.empty_individual)
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
-        self.toolbox.register("evaluate", self.eval_tool.evaluate)
+        self.toolbox.register("evaluate", Evaluator.evaluate)
         self.toolbox.register("mate", cx_uniform)
         self.toolbox.register("mutate", mut_swap)
         self.toolbox.register("select", tools.selTournamentDCD)
@@ -241,6 +238,6 @@ class GA:
 
         # logbook settings
         self.logbook = tools.Logbook()
-        self.logbook.header = ["gen", "evals"] + self.eval_tool.eval_list()
-        for eval_name in self.eval_tool.eval_list():
+        self.logbook.header = ["gen", "evals"] + Evaluator.eval_list()
+        for eval_name in Evaluator.eval_list():
             self.logbook.chapters[eval_name].header = "min", "avg", "max"

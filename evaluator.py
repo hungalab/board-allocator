@@ -20,18 +20,23 @@ def avg_hops(ind):
 
 #--------------------------------------------------------------
 class Evaluator:
-    def __init__(self):
-        self.__funcs = [
-            ('avg # of slots', avg_slots, -1.0), 
-            ("# of flows' edges", edges, -1.0),
-            ('# of routed bords', boards, -1.0)
-        ]
+    __funcs = [
+        ('avg # of slots', avg_slots, -1.0), 
+        ("# of flows' edges", edges, -1.0),
+        ('# of routed bords', boards, -1.0)
+    ]
     
-    def eval_list(self):
-        return [func[0] for func in self.__funcs]
+    ##---------------------------------------------------------
+    @classmethod
+    def eval_list(cls):
+        return [func[0] for func in cls.__funcs]
 
-    def evaluate(self, individual):
-        return [func[1](individual) for func in self.__funcs]
+    ##---------------------------------------------------------
+    @classmethod
+    def evaluate(cls, individual):
+        return [func[1](individual) for func in cls.__funcs]
 
-    def weights(self):
-        return tuple(func[2] for func in self.__funcs)
+    ##---------------------------------------------------------
+    @classmethod
+    def weights(cls):
+        return tuple(func[2] for func in cls.__funcs)

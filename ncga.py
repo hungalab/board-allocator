@@ -9,6 +9,7 @@ from deap import tools
 
 # my library
 from galib import GA, my_multiprocessing_map
+from evaluator import Evaluator
 
 #--------------------------------------------------------------
 class NCGA(GA):
@@ -66,7 +67,7 @@ class NCGA(GA):
         # record
         record = self.stats.compile(pop)
         record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
-                  for i, eval_name in enumerate(self.eval_tool.eval_list())}
+                  for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), **record)
 
         while time.time() - start_time < exectution_time:
@@ -75,9 +76,9 @@ class NCGA(GA):
 
             # generate offsprings
             if self.sort_method == 'cyclic':
-                index = (gen - 1) % len(self.eval_tool.eval_list())
+                index = (gen - 1) % len(Evaluator.eval_list())
             elif self.sort_method == 'random':
-                index = random.randrange(len(self.eval_tool.eval_list()))
+                index = random.randrange(len(Evaluator.eval_list()))
             parents = sorted(pop, key=lambda ind: ind.fitness.values[index])[0:self.offspring_size]
             offsprings = list(itertools.chain.from_iterable(\
                           map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
@@ -109,7 +110,7 @@ class NCGA(GA):
             # record
             record = self.stats.compile(pop)
             record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
-                      for i, eval_name in enumerate(self.eval_tool.eval_list())}
+                      for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), **record)
 
         if process_num != 1:
@@ -119,9 +120,9 @@ class NCGA(GA):
         print(self.logbook.stream)
         print("# of individuals in hall_of_fame: {}".format(len(hall_of_fame)))
         indbook = tools.Logbook()
-        indbook.header = ['index'] + self.eval_tool.eval_list()
+        indbook.header = ['index'] + Evaluator.eval_list()
         for i, ind in enumerate(hall_of_fame):
-            record = {name: value for name, value in zip(self.eval_tool.eval_list(), ind.fitness.values)}
+            record = {name: value for name, value in zip(Evaluator.eval_list(), ind.fitness.values)}
             indbook.record(index=i, **record)
         print(indbook.stream)
     
