@@ -15,13 +15,16 @@ def boards(ind):
     return ind.board_num_to_be_routed()
 
 #--------------------------------------------------------------
+def avg_hops(ind):
+    return ind.average_hops()
+
+#--------------------------------------------------------------
 class Evaluator:
     def __init__(self):
         self.__funcs = [
-            ('slots(avg)', avg_slots, -1.0), 
-            ('slots(max)', max_slots, -1.0), 
-            ('edges', edges, -1.0),
-            ('bords', boards, -1.0)
+            ('avg # of slots', avg_slots, -1.0), 
+            ("# of flows' edges", edges, -1.0),
+            ('# of routed bords', boards, -1.0)
         ]
     
     def eval_list(self):

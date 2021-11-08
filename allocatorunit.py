@@ -369,6 +369,10 @@ class AllocatorUnit:
     ##---------------------------------------------------------
     def board_num_to_be_routed(self):
         return len(set().union(*[pair.path for pair in self.pair_dict.values()]))
+
+    ##---------------------------------------------------------
+    def average_hops(self):
+        return (sum([len(pair.path) for pair in self.pair_dict.values()]) / len(self.pair_dict)) - 2
     
     ##---------------------------------------------------------
     def save_au(self, file_name=None, protocol=pickle.HIGHEST_PROTOCOL):
