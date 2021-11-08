@@ -366,7 +366,10 @@ class BoardManagementCLI(cmd.Cmd):
             print("Total execution time must be greater than 0 second.")
             return
         
-        hof = self.ba.nsga2(execution_time, args.p)
+        try: 
+            hof = self.ba.nsga2(execution_time, args.p)
+        except ValueError as e:
+            print(e)
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
@@ -402,7 +405,10 @@ class BoardManagementCLI(cmd.Cmd):
             print("Total execution time must be greater than 0 second.")
             return
         
-        hof = self.ba.spea2(execution_time, args.p)
+        try:
+            hof = self.ba.spea2(execution_time, args.p)
+        except ValueError as e:
+            print(e)
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
@@ -438,7 +444,10 @@ class BoardManagementCLI(cmd.Cmd):
             print("Total execution time must be greater than 0 second.")
             return
         
-        hof = self.ba.ncga(execution_time, args.p)
+        try:
+            hof = self.ba.ncga(execution_time, args.p)
+        except ValueError as e:
+            print(e)
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False

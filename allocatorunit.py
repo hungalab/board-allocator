@@ -269,9 +269,15 @@ class AllocatorUnit:
                 for flow_id in id_set:
                     result_dict[flow_id] = slot_id
         
+        # sort result by the number of branches in the flow graph
+        sorted_result = sorted(result, \
+                               key=lambda id_set: \
+                                sum([nx.number_of_edges(flow_dict_for_slot_allocation[flow_id].flow_graph) \
+                                    for flow_id in id_set]))
+
         # assign the other slot_id
         slot_id = 0
-        for id_set in result:
+        for id_set in sorted_result:
             while slot_id in used_slot:
                 slot_id += 1
             if len(id_set & existing_flow) == 0:
@@ -310,7 +316,13 @@ class AllocatorUnit:
                 remaining_new_slot.remove(decrypted_slot)
                 convert[slot_id] = decrypted_slot
         assert len(remaining_old_slot) <= len(remaining_new_slot)
-        for old, new in zip(remaining_old_slot, sorted(list(remaining_new_slot))):
+
+        # sort result by the number of branches in the flow graph
+        sorted_remaining_old_slot = sorted(remaining_old_slot, \
+                                           key=lambda s: \
+                                            sum([nx.number_of_edges(self.flow_dict_for_slot_allocation[flow_id].flow_graph) \
+                                                 for flow_id, slot_id in coloring.items() if slot_id == s]))
+        for old, new in zip(sorted_remaining_old_slot, sorted(list(remaining_new_slot))):
             convert[old] = new
 
         for flow_id, slot_id in coloring.items():
@@ -319,11 +331,38 @@ class AllocatorUnit:
         return coloring
     
     ##---------------------------------------------------------
-    def get_greedy_slot_num(self):
+    def get_avg_greedy_slot_num(self):
+        rNode_id2slots = {rNode_id: 0 for rNode_id in self.topology.nodes}
+        coloring = self.greedy_slot_allocation()
+        slot_id2flow_id_list = {s: [flow_id for flow_id, slot_id in coloring.items() if slot_id == s] \
+                                    for s in set(coloring.values())}
+
+        desc_slot_id_list = sorted(list(set(coloring.values())), reverse=True)
+        for slot_id in desc_slot_id_list:
+            flow_id_list = slot_id2flow_id_list[slot_id]
+            for flow_id in flow_id_list:
+                flow_graph = self.flow_dict_for_slot_allocation[flow_id].flow_graph
+                nodes_in_flow = set(flow_graph.nodes)
+                for s in [s for s in desc_slot_id_list if s >= slot_id]:
+                    if s > slot_id:
+                        rNodes_whose_slots_are_s = {rNode_id for rNode_id, slots in rNode_id2slots.items() \
+                                                    if slots == s + 1}
+                        if nodes_in_flow & rNodes_whose_slots_are_s != set():
+                            for node in nodes_in_flow:
+                                rNode_id2slots[node] = s + 1
+                            break
+                    else:
+                        for node in nodes_in_flow:
+                            rNode_id2slots[node] = s + 1
+        
+        return sum(rNode_id2slots.values()) / len(rNode_id2slots)
+    
+    ##---------------------------------------------------------
+    def get_max_greedy_slot_num(self):
         return max(self.greedy_slot_allocation().values()) + 1
 
     ##---------------------------------------------------------
-    def get_total_communication_hops(self):
+    def get_total_communication_flow_edges(self):
         self.set_flow_dict_for_slot_allocation()
         return sum([nx.number_of_edges(flow.flow_graph) for flow in self.flow_dict.values()])
     

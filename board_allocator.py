@@ -295,7 +295,7 @@ class BoardAllocator:
         return hall_of_fame
 
     ##---------------------------------------------------------
-    def select_form_hof(self, index=None):
+    def select_from_hof(self, hof, index=None):
         if index is None:
             pass ## select index
 

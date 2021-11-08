@@ -9,6 +9,7 @@ from deap import tools
 
 # my library
 from galib import GA, my_multiprocessing_map, mate_or_mutate
+import alns
 
 #--------------------------------------------------------------
 class NSGA2(GA):
@@ -92,6 +93,14 @@ class NSGA2(GA):
             # offsprings' mutation
             offsprings += list(itertools.chain.from_iterable(\
                           map(self.toolbox.mutate, pop, [1] * len(pop))))
+            
+            # 2-opt execution
+            length = min(process_num, tournament_max_length)
+            selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
+            selected = self.toolbox.map(alns.alns2, selected, [1] * length, [False] * length)
+            for ind in selected:
+                del ind.fitness.values
+            offsprings += selected
             
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]

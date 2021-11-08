@@ -1,10 +1,14 @@
 #--------------------------------------------------------------
-def slots(ind):
-    return ind.get_greedy_slot_num()
+def avg_slots(ind):
+    return ind.get_avg_greedy_slot_num()
 
 #--------------------------------------------------------------
-def hops(ind):
-    return ind.get_total_communication_hops()
+def max_slots(ind):
+    return ind.get_max_greedy_slot_num()
+
+#--------------------------------------------------------------
+def edges(ind):
+    return ind.get_total_communication_flow_edges()
 
 #--------------------------------------------------------------
 def boards(ind):
@@ -14,8 +18,9 @@ def boards(ind):
 class Evaluator:
     def __init__(self):
         self.__funcs = [
-            ('slots', slots, -1.0), 
-            ('hops', hops, -1.0),
+            ('slots(avg)', avg_slots, -1.0), 
+            ('slots(max)', max_slots, -1.0), 
+            ('edges', edges, -1.0),
             ('bords', boards, -1.0)
         ]
     
