@@ -312,8 +312,10 @@ class BoardAllocator:
             if key(app_id):
                 apps_book.record(app_id=app_id, communication=os.path.basename(appv.communicationFile), date=appv.date)
         
-        print(apps_book.stream)
-        print()
+        if len(apps_book) == 0:
+            print("There are no items that match the condition.")
+        else:
+            print(apps_book.stream)
 
     ##---------------------------------------------------------
     def show_nodes(self, key=lambda app_id, vNode_id, rNode_id: True):
@@ -326,8 +328,10 @@ class BoardAllocator:
                 if key(app_id, vNode_id, rNode_id):
                     nodes_book.record(app_id=app_id, vNode_id=vNode_id, rNode_id=rNode_id)
         
-        print(nodes_book.stream)
-        print()
+        if len(nodes_book) == 0:
+            print("There are no items that match the condition.")
+        else:
+            print(nodes_book.stream)
     
     ##---------------------------------------------------------
     def show_flows(self, key=lambda app_id, flow_id, slot_id: True):
@@ -340,8 +344,10 @@ class BoardAllocator:
                 if key(app_id, flow_id, slot_id):
                     flows_book.record(app_id=app_id, flow_id=flow_id, slot_id=slot_id)
         
-        print(flows_book.stream)
-        print()
+        if len(flows_book) == 0:
+            print("There are no items that match the condition.")
+        else:
+            print(flows_book.stream)
     
     ##---------------------------------------------------------
     def print_result(self, fully_desplay=False):

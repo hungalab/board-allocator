@@ -9,6 +9,8 @@ from functools import partial
 import readline
 import threading
 import tkinter
+import re
+import traceback
 
 from board_allocator import now, default_filename, BoardAllocator, FIG_DIR
 
@@ -65,7 +67,12 @@ DEFAULT_NODE_STATUS_FIG = os.path.join(FIG_DIR, 'current.png')
 class BoardManagementCLI(cmd.Cmd):
     intro = 'Board Management CLI'
     prompt = '>> '
+    __SHOW_APPS_COND_VARS = ['app_id']
+    __SHOW_NODES_COND_VARS = ['app_id', 'vNode_id', 'rNode_id']
+    __SHOW_FLOWS_COND_VARS = ['app_id', 'flow_id', 'slot_id']
+    # sample code
     arg3_choices = ['alpha', 'beta', 'gamma']
+    
 
     ##---------------------------------------------------------
     def __init__(self):
@@ -193,7 +200,7 @@ class BoardManagementCLI(cmd.Cmd):
                                               ' pattern of your application')
         
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
         
         try:
@@ -221,7 +228,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('--all', action='store_true', help='remove all applications')
         
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -240,7 +247,8 @@ class BoardManagementCLI(cmd.Cmd):
                 try:
                     self.ba.remove_app(app_id)
                 except ValueError as e:
-                    print(e)
+                    for s in traceback.format_exception_only(type(e), e):
+                        print(s.rstrip('\n'))
                 else:
                     self.is_saved = False
 
@@ -261,7 +269,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('-f', '--full', action='store_true', help='display full status')
 
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -286,7 +294,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
 
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -319,7 +327,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('-ho', help='execution_time += 3600 * int(ho)', default=0, type=int)
 
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -353,7 +361,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('-p', help='# of processes to use', default=1, type=int)
 
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -369,7 +377,8 @@ class BoardManagementCLI(cmd.Cmd):
         try: 
             hof = self.ba.nsga2(execution_time, args.p)
         except ValueError as e:
-            print(e)
+            for s in traceback.format_exception_only(type(e), e):
+                print(s.rstrip('\n'))
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
@@ -392,7 +401,7 @@ class BoardManagementCLI(cmd.Cmd):
         parser.add_argument('-p', help='# of processes to use', default=1, type=int)
 
         if self.ba is None:
-            print("There is no allocator. Please execute 'init'or 'load' command.")
+            print("There is no allocator. Please execute 'init' or 'load' command.")
             return None
 
         try:
@@ -408,7 +417,8 @@ class BoardManagementCLI(cmd.Cmd):
         try:
             hof = self.ba.spea2(execution_time, args.p)
         except ValueError as e:
-            print(e)
+            for s in traceback.format_exception_only(type(e), e):
+                print(s.rstrip('\n'))
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
@@ -447,7 +457,8 @@ class BoardManagementCLI(cmd.Cmd):
         try:
             hof = self.ba.ncga(execution_time, args.p)
         except ValueError as e:
-            print(e)
+            for s in traceback.format_exception_only(type(e), e):
+                print(s.rstrip('\n'))
         ## self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
@@ -461,9 +472,96 @@ class BoardManagementCLI(cmd.Cmd):
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
 
     ##---------------------------------------------------------
+    def do_show_apps(self, line):
+        parser = argparse.ArgumentParser(prog="show_apps", description='show applications')
+        parser.add_argument('-w', '--where', nargs='*', default=[], help='the condition of items to display')
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init' or 'load' command.")
+            return None
+        
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+
+        if args.where == []:
+            self.ba.show_apps()
+        else:
+            func = self._make_lambda(args.where, self.__SHOW_APPS_COND_VARS)
+            if func is None:
+                return None
+            self.ba.show_apps(key=func)
+
+    ##---------------------------------------------------------
+    def complete_show_apps(self, text, line, begidx, endidx):
+        completor = partial(self._completion_by_iterable, iterable=self.__SHOW_APPS_COND_VARS)
+        arg_name2Arg = {'--where': Arg(float('inf'), completor), 
+                        '-w': Arg(float('inf'), completor)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+    
+    ##---------------------------------------------------------
+    def do_show_nodes(self, line):
+        parser = argparse.ArgumentParser(prog="show_nodes", description='show nodes')
+        parser.add_argument('-w', '--where', nargs='*', default=[], help='the condition of items to display')
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init' or 'load' command.")
+            return None
+        
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+
+        if args.where == []:
+            self.ba.show_nodes()
+        else:
+            func = self._make_lambda(args.where, self.__SHOW_NODES_COND_VARS)
+            if func is None:
+                return None
+            self.ba.show_nodes(key=func)
+
+    ##---------------------------------------------------------
+    def complete_show_nodes(self, text, line, begidx, endidx):
+        completor = partial(self._completion_by_iterable, iterable=self.__SHOW_NODES_COND_VARS)
+        arg_name2Arg = {'--where': Arg(float('inf'), completor), 
+                        '-w': Arg(float('inf'), completor)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+    
+    ##---------------------------------------------------------
+    def do_show_flows(self, line):
+        parser = argparse.ArgumentParser(prog="show_flows", description='show flows')
+        parser.add_argument('-w', '--where', nargs='*', default=[], help='the condition of items to display')
+
+        if self.ba is None:
+            print("There is no allocator. Please execute 'init' or 'load' command.")
+            return None
+        
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+
+        if args.where == []:
+            self.ba.show_flows()
+        else:
+            func = self._make_lambda(args.where, self.__SHOW_FLOWS_COND_VARS)
+            if func is None:
+                return None
+            self.ba.show_flows(key=func)
+
+    ##---------------------------------------------------------
+    def complete_show_flows(self, text, line, begidx, endidx):
+        completor = partial(self._completion_by_iterable, iterable=self.__SHOW_FLOWS_COND_VARS)
+        arg_name2Arg = {'--where': Arg(float('inf'), completor), 
+                        '-w': Arg(float('inf'), completor)}
+        return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
+
+    ##---------------------------------------------------------
     def do_show_fig(self, line):
-        parser = argparse.ArgumentParser(prog="command", description='command test')
-        parser.add_argument('--off', action='store_true', help='flag')
+        parser = argparse.ArgumentParser(prog="show_fig", description='show the current node status figure')
+        parser.add_argument('--off', action='store_true', help='disable GUI')
 
         try:
             args = parser.parse_args(args=line.split())
@@ -477,7 +575,7 @@ class BoardManagementCLI(cmd.Cmd):
 
         if (self.fig_thread is None) or (not self.fig_thread.is_alive()):
             if self.ba is None:
-                print("There is no allocator. Please execute 'init'or 'load' command.")
+                print("There is no allocator. Please execute 'init' or 'load' command.")
                 return None
             self.fig_quit_event.clear()
             self.fig_thread = threading.Thread(target=fig_view, args=(self.fig_quit_event,))
@@ -665,9 +763,61 @@ class BoardManagementCLI(cmd.Cmd):
         iterable: an iterable object of string
         '''
         if arg == '':
-            return [elm + ' ' for elm in iterable]
+            return [str(elm) + ' ' for elm in iterable]
         else:
-            return [elm + ' ' for elm in iterable if elm.startswith(arg)]
+            return [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
+    
+    ##---------------------------------------------------------
+    @staticmethod
+    def _make_condition(cond_str_list, argument_str_list):
+        base_pattern = '\d*\.\d+|\d+\.\d*|\d+|\(|\)|\[|\]|\{|\}|\+|\-|\*+|/+|\%|\~|\&|\|'\
+                       '|\,|\^|\<+|\>+|\=\=|\!\=|\<\=|\>\=|is|not|in|and|or|not|if|else|None'
+        pattern_str = '|'.join([base_pattern] + argument_str_list)
+        pattern = re.compile(pattern_str)
+        
+        cond = ''
+        for text in cond_str_list:
+            while text != '':
+                match_obj = pattern.match(text)
+                if match_obj is None:
+                    raise SyntaxError("'{}' is an unavailable expression.".format(text))
+                cond += match_obj.group()
+                text = text[match_obj.end():]
+            cond += ' '
+        
+        return cond
+
+    ##---------------------------------------------------------
+    @classmethod
+    def _make_lambda(cls, args, acceptable_variables):
+        try:
+            cond = cls._make_condition(args, acceptable_variables)
+        except SyntaxError as e:
+            for s in traceback.format_exception_only(type(e), e):
+                print(s.rstrip('\n'))
+            return None
+
+        header = 'lambda '
+        for var in acceptable_variables:
+            header += var + ', '
+        header = header[:-2] + ': '
+        try:
+            func = eval(header + cond)
+        except SyntaxError as e:
+            badline = e.text
+            offset = e.offset
+            cond_offset = len(header)
+            err_strs = traceback.format_exception_only(type(e), e)
+            n = 1
+            if badline is not None:
+                print(err_strs[n][4 + cond_offset:].rstrip('\n'))
+                n += 1
+                if offset is not None:
+                    print(err_strs[n][4 + cond_offset:].rstrip('\n'))
+                    n += 1
+            print(err_strs[n].rstrip('\n'))
+            return None
+        return func
 
     ##---------------------------------------------------------
     # overridden method
