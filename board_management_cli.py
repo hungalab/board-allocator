@@ -11,6 +11,7 @@ import threading
 import tkinter
 import re
 import traceback
+import warnings
 
 from board_allocator import now, default_filename, BoardAllocator, FIG_DIR
 
@@ -84,6 +85,8 @@ class BoardManagementCLI(cmd.Cmd):
         readline.set_completer_delims(' \t\n`!@#$\\;:,?')
         if not os.path.isdir(SAVE_DIR):
             os.mkdir(SAVE_DIR)
+        if not os.path.isdir(FIG_DIR):
+            os.mkdir(FIG_DIR)
     
     ##---------------------------------------------------------
     def do_wipe(self, line):
@@ -375,7 +378,9 @@ class BoardManagementCLI(cmd.Cmd):
             return
         
         try: 
+            warnings.filterwarnings(action='ignore', category=RuntimeWarning, module=r'.*creator')
             hof = self.ba.nsga2(execution_time, args.p)
+            warnings.resetwarnings()
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
@@ -415,7 +420,9 @@ class BoardManagementCLI(cmd.Cmd):
             return
         
         try:
+            warnings.filterwarnings(action='ignore', category=RuntimeWarning, module=r'.*creator')
             hof = self.ba.spea2(execution_time, args.p)
+            warnings.resetwarnings()
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
@@ -455,7 +462,9 @@ class BoardManagementCLI(cmd.Cmd):
             return
         
         try:
+            warnings.filterwarnings(action='ignore', category=RuntimeWarning, module=r'.*creator')
             hof = self.ba.ncga(execution_time, args.p)
+            warnings.resetwarnings()
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
