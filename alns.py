@@ -8,7 +8,7 @@ from allocatorunit import AllocatorUnit, App, Pair, VNode
 import oplib
 
 #--------------------------------------------------------------
-def alns(au, max_execution_time):
+def alns(au, max_execution_time, enable_log=True):
     # probability changer
     p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
 
@@ -53,12 +53,69 @@ def alns(au, max_execution_time):
             au = AllocatorUnit.load_au_from_obj(best)
 
     # logs
-    print("number of loops: {}".format(loops))
-    print("number of updates for slot decrease: {}".format(cnt_slot_change))
-    print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
-    print("allocated rNode_id: {}".format(au.temp_allocated_rNode_dict))
-    for elm in updatelog:
-        print(elm)
+    if enable_log:
+        print("number of loops: {}".format(loops))
+        print("number of updates for slot decrease: {}".format(cnt_slot_change))
+        print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("allocated rNode_id: {}".format(au.temp_allocated_rNode_dict))
+        for elm in updatelog:
+            print(elm)
+
+    return AllocatorUnit.load_au_from_obj(best)
+
+#--------------------------------------------------------------
+def alns_only_pairs(au, max_execution_time, enable_log=True):
+    # probability changer
+    p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
+
+    loops = 0
+    cnt_slot_change = 0
+    cnt_total_hops_change = 0
+    updatelog = list()
+
+    start_time = time.time()
+
+    # genarate the initial solution
+    oplib.generate_initial_solution(au)
+    best = au.save_au()
+    best_slot_num = au.get_avg_greedy_slot_num()
+    best_total_hops = au.get_total_communication_flow_edges()
+
+    while time.time() - start_time < max_execution_time:
+        loops += 1
+
+        # break and repair
+        target_pair_num = random.randrange(1, len(au.allocating_pair_list))
+        oplib.break_and_repair(au, target_pair_num, target='pair')
+
+        # evaluation
+        slot_num = au.get_avg_greedy_slot_num()
+        total_hops = au.get_total_communication_flow_edges()
+        if slot_num < best_slot_num:
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            best = au.save_au()
+            best_slot_num = slot_num
+            best_total_hops = total_hops
+            cnt_slot_change += 1
+        elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
+            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            best = au.save_au()
+            best_slot_num = slot_num
+            best_total_hops = total_hops
+            cnt_total_hops_change += 1
+        else:
+            au = AllocatorUnit.load_au_from_obj(best)
+
+    # logs
+    if enable_log:
+        print("number of loops: {}".format(loops))
+        print("number of updates for slot decrease: {}".format(cnt_slot_change))
+        print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("allocated rNode_id: {}".format(au.temp_allocated_rNode_dict))
+        for elm in updatelog:
+            print(elm)
 
     return AllocatorUnit.load_au_from_obj(best)
 

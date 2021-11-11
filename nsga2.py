@@ -84,21 +84,21 @@ class NSGA2(GA):
                 parents += tools.selTournamentDCD(pop, length)
             
 
-            #offsprings = list(itertools.chain.from_iterable(
-            #              map(mate_or_mutate, mate_array, mutate_array, 
-            #                  parents[::2], parents[1::2], mate_pb_array)))
+            offsprings = list(itertools.chain.from_iterable(
+                          map(mate_or_mutate, mate_array, mutate_array, 
+                              parents[::2], parents[1::2], mate_pb_array)))
             
-            offsprings = list(itertools.chain.from_iterable(\
-                          map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
+            #offsprings = list(itertools.chain.from_iterable(\
+            #              map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
 
             # offsprings' mutation
-            offsprings += list(itertools.chain.from_iterable(\
-                          map(self.toolbox.mutate, pop, [1] * len(pop))))
+            #offsprings += list(itertools.chain.from_iterable(\
+            #              map(self.toolbox.mutate, pop, [1] * len(pop))))
             
             # 2-opt execution
             length = min(process_num, tournament_max_length)
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
-            selected = self.toolbox.map(alns.alns2, selected, [1] * length, [False] * length)
+            selected = self.toolbox.map(alns.alns_only_pairs, selected, [0.5] * length, [False] * length)
             for ind in selected:
                 del ind.fitness.values
             offsprings += selected

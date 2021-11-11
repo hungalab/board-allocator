@@ -181,22 +181,44 @@ def node_swap(au, target_vNode_id=None):
     return au
 
 #--------------------------------------------------------------
-def break_and_repair(au, target_node_num):
-    # break
-    target_vNode_id_list = list()
-    for i in range(target_node_num):
-        # select a temporary allocated vNode_id to break
-        temp_allocated_vNode_list = list(au.temp_allocated_rNode_dict.values())
-        vNode_id = random.choice(temp_allocated_vNode_list)
+def break_and_repair(au, target_num, target='node'):
+    if target not in ['node', 'pair']:
+        raise ValueError("'{}' is invalid.".format(target))
+    
+    if (not isinstance(target_num, int)):
+        raise TypeError("The 1st argument \"target_num\" must be 'int'.")
+    
+    if target_num < 0:
+        raise ValueError("The 1st argument \"target_num\" must be a natural number.")
+    
+    if target == 'node':
+        # break
+        target_vNode_id_list = list()
+        for i in range(min(target_num, len(au.temp_allocated_rNode_dict))):
+            # select a temporary allocated vNode_id to break
+            temp_allocated_vNode_list = list(au.temp_allocated_rNode_dict.values())
+            vNode_id = random.choice(temp_allocated_vNode_list)
 
-        # deallocate selected vNode_id
-        node_deallocation(au, vNode_id)
+            # deallocate selected vNode_id
+            node_deallocation(au, vNode_id)
 
-        # append selected vNode_id to target_vNode_id_list
-        target_vNode_id_list.append(vNode_id)
+            # append selected vNode_id to target_vNode_id_list
+            target_vNode_id_list.append(vNode_id)
 
-    # repair
-    for vNode_id in target_vNode_id_list:
-        random_node_allocation(au, vNode_id)
+        # repair
+        for vNode_id in target_vNode_id_list:
+            random_node_allocation(au, vNode_id)
+    elif target == 'pair':
+        target_num = min(target_num, len(au.allocating_pair_list))
+        break_pair_list = random.sample(au.allocating_pair_list, target_num)
+        break_pair_id_list = [pair.pair_id for pair in break_pair_list]
+
+        # break
+        for pair_id in break_pair_id_list:
+            pair_deallocation(au, pair_id)
+        
+        # repair
+        for pair_id in break_pair_id_list:
+            random_pair_allocation(au, pair_id)
     
     return au
