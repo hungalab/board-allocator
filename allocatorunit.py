@@ -3,7 +3,6 @@ import pickle
 import networkx as nx
 
 from mcc import mcc
-from graphillion import GraphSet
 
 #--------------------------------------------------------------
 def slot_encrypt(slot):
@@ -243,6 +242,7 @@ class AllocatorUnit:
 
     ##---------------------------------------------------------
     def optimal_slot_allocation(self):
+        from graphillion import GraphSet
         self.set_flow_dict_for_slot_allocation()
         universe = [(i, j) \
                     for i, fi in self.flow_dict_for_slot_allocation.items() \
