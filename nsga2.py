@@ -1,5 +1,4 @@
 import time
-import random
 import multiprocessing
 import itertools
 
@@ -29,7 +28,7 @@ class NSGA2(GA):
             raise ValueError("offspring_size must be a multiple of 4.")
     
     ##---------------------------------------------------------
-    def run(self, exectution_time, process_num=1):
+    def run(self, exectution_time, process_num=1, eliminate_dups=True):
         # multiprocessing settings
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
@@ -66,7 +65,7 @@ class NSGA2(GA):
         record = self.stats.compile(pop)
         record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
                   for i, eval_name in enumerate(Evaluator.eval_list())}
-        self.logbook.record(gen=0, evals=len(invalid_ind), **record)
+        self.logbook.record(gen=0, evals=len(invalid_ind), dups='N/A', **record)
 
         while time.time() - start_time < exectution_time:
             # uppdate generation number
@@ -84,12 +83,12 @@ class NSGA2(GA):
                 parents += tools.selTournamentDCD(pop, length)
             
 
-            offsprings = list(itertools.chain.from_iterable(
-                          map(mate_or_mutate, mate_array, mutate_array, 
-                              parents[::2], parents[1::2], mate_pb_array)))
+            #offsprings = list(itertools.chain.from_iterable(
+            #              map(mate_or_mutate, mate_array, mutate_array, 
+            #                  parents[::2], parents[1::2], mate_pb_array)))
             
-            #offsprings = list(itertools.chain.from_iterable(\
-            #              map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
+            offsprings = list(itertools.chain.from_iterable(\
+                          map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
 
             # offsprings' mutation
             #offsprings += list(itertools.chain.from_iterable(\
@@ -98,7 +97,7 @@ class NSGA2(GA):
             # 2-opt execution
             length = min(process_num, tournament_max_length)
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
-            selected = self.toolbox.map(alns.alns_only_pairs, selected, [0.5] * length, [False] * length)
+            selected = self.toolbox.map(alns.alns2, selected, [1] * length, [False] * length)
             for ind in selected:
                 del ind.fitness.values
             offsprings += selected
@@ -110,10 +109,17 @@ class NSGA2(GA):
                 ind.fitness.values = fit
 
             # selection
-            pop = self.toolbox.select(pop + offsprings, self.pop_num)
+            pop += offsprings
+            if eliminate_dups:
+                pop_len = len(pop)
+                pop = [elm for index, elm in enumerate(pop) if elm not in pop[:index]]
+                dups = pop_len - len(pop)
+            else:
+                dups = 'N/A'
+            pop = self.toolbox.select(pop, min(self.pop_num, len(pop)))
 
             # insert random individuals
-            rand_pop = self.toolbox.population(20)
+            rand_pop = self.toolbox.population(20 + (self.pop_num - len(pop)))
             fitnesses = self.toolbox.map(self.toolbox.evaluate, rand_pop)
             for ind, fit in zip(rand_pop, fitnesses):
                 ind.fitness.values = fit
@@ -128,7 +134,7 @@ class NSGA2(GA):
             record = self.stats.compile(pop)
             record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
                       for i, eval_name in enumerate(Evaluator.eval_list())}
-            self.logbook.record(gen=gen, evals=len(invalid_ind), **record)
+            self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, **record)
 
         if process_num != 1:
             pool.close()

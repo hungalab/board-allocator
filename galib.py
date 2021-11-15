@@ -4,8 +4,6 @@ import collections
 import numpy
 from functools import partial
 
-import networkx as nx
-
 from deap import tools
 from deap import base
 from deap import creator
@@ -148,6 +146,7 @@ def cx_uniform(parent0, parent1, mate_pb=1.0):
                                   for vNode_id, bit in mask1.items()}
         counter = collections.Counter(list(next_child1_rNode_dict.values()))
         for key, count in counter.items():
+            assert count <= 2
             if count == 2:
                 selected = random.randint(0, 1)
                 current = 0
@@ -238,6 +237,6 @@ class GA:
 
         # logbook settings
         self.logbook = tools.Logbook()
-        self.logbook.header = ["gen", "evals"] + Evaluator.eval_list()
+        self.logbook.header = ["gen", "evals", "dups"] + Evaluator.eval_list()
         for eval_name in Evaluator.eval_list():
             self.logbook.chapters[eval_name].header = "min", "avg", "max"

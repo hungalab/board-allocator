@@ -1,4 +1,5 @@
 import pickle
+import copy
 
 import networkx as nx
 
@@ -17,6 +18,11 @@ class App:
         self.vNode_list = vNode_list # list: list of vNodes of the App
         self.flow_list = flow_list # list: list of flows of the App
         self.pair_list = pair_list # list: list of pairs of the App
+    
+    ##---------------------------------------------------------
+    def __eq__(self, other):
+        return (self.app_id == other.app_id) and (self.vNode_list == other.vNode_list) \
+               and (self.flow_list == other.flow_list) and (self.pair_list == other.pair_list)
 
 #--------------------------------------------------------------
 class Pair:
@@ -27,6 +33,11 @@ class Pair:
         self.src_vNode = None
         self.dst_vNode = None
         self.path = None # using path list
+    
+    ##---------------------------------------------------------
+    def __eq__(self, other):
+        return (self.pair_id == other.pair_id) and (self.src == other.src) \
+               and (self.dst == other.dst) and (self.path == other.path)
 
 #--------------------------------------------------------------
 class Flow:
@@ -50,6 +61,11 @@ class Flow:
         if self.slot_id is None:
             self.slot_id = other.slot_id
         self.pair_list += other.pair_list
+    
+    ##---------------------------------------------------------
+    def __eq__(self, other):
+        return (self.flow_id == other.flow_id) and (self.pair_list == other.pair_list) \
+               and (self.slot_id == other.slot_id)
 
 #--------------------------------------------------------------
 class VNode:
@@ -59,6 +75,10 @@ class VNode:
         self.recv_pair_list = recv_pair_list # list: list of pair to be recieved by this VNode
         self.rNode_id = None # allocated node label (label is defined in topologyFile), 
                              # if the vNode is not allocated (including tmporary), the value is None
+    
+    ##---------------------------------------------------------
+    def __eq__(self, other):
+        return (self.vNode_id == other.vNode_id) and (self.rNode_id == other.rNode_id)
 
 #--------------------------------------------------------------
 class AllocatorUnitInitializationError(Exception):
@@ -98,7 +118,7 @@ class AllocatorUnit:
             self.allocating_pair_list = list() # 1D list: the list of pairs that are being allocated
             ## manage the real node
             self.temp_allocated_rNode_dict = dict() # 1D dict: rNode_id |-> vNode_id
-            self.empty_rNode_set = set(range(nx.number_of_nodes(self.topology))) # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            self.empty_rNode_set = set(range(self.topology.number_of_nodes())) # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
             ## shortest path list
             self.st_path_table = None # 2D list: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
             ## slot management
@@ -106,7 +126,7 @@ class AllocatorUnit:
             self.flow_dict_for_slot_allocation_valid = False
 
             # create st-path list
-            node_num = nx.number_of_nodes(self.topology)
+            node_num = self.topology.number_of_nodes()
             self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
             for src in range(0, node_num):
                 for dst in range(0, node_num):
@@ -120,7 +140,7 @@ class AllocatorUnit:
                 base = pickle.loads(seed)
             elif isinstance(seed, str):
                 with open(seed, 'rb') as f:
-                    base = pikcle.load(f)
+                    base = pickle.load(f)
             else:
                 raise TypeError("The 2nd argument \"seed\" must be 'AllocationUnit', 'bytes', or 'str'.")
 
@@ -151,7 +171,7 @@ class AllocatorUnit:
     ##---------------------------------------------------------
     def add_app(self, app):
         # check whether the app can be mapped
-        if len(self.vNode_dict) + len(app.vNode_list) > nx.number_of_nodes(self.topology):
+        if len(self.vNode_dict) + len(app.vNode_list) > self.topology.number_of_nodes():
             return False
 
         # add app
@@ -246,7 +266,7 @@ class AllocatorUnit:
         universe = [(i, j) \
                     for i, fi in self.flow_dict_for_slot_allocation.items() \
                     for j, fj in self.flow_dict_for_slot_allocation.items() \
-                    if i < j and nx.number_of_edges(nx.intersection(fi.flow_graph, fj.flow_graph)) == 0]
+                    if i < j and nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() == 0]
         if universe == []:
             return len(self.flow_dict_for_slot_allocation)
         node_set = set(self.flow_dict_for_slot_allocation.keys())
@@ -271,8 +291,8 @@ class AllocatorUnit:
         # sort result by the number of branches in the flow graph
         sorted_result = sorted(result, \
                                key=lambda id_set: \
-                                sum([nx.number_of_edges(flow_dict_for_slot_allocation[flow_id].flow_graph) \
-                                    for flow_id in id_set]))
+                                sum([self.flow_dict_for_slot_allocation[flow_id].flow_graph.number_of_edges() \
+                                    for flow_id in id_set]), reverse=True)
 
         # assign the other slot_id
         slot_id = 0
@@ -297,7 +317,7 @@ class AllocatorUnit:
         universe = [(i, j) \
                     for i, fi in self.flow_dict_for_slot_allocation.items() \
                     for j, fj in self.flow_dict_for_slot_allocation.items() \
-                    if i < j and nx.number_of_edges(nx.intersection(fi.flow_graph, fj.flow_graph)) != 0]
+                    if i < j and nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
         node_set = set(self.flow_dict_for_slot_allocation.keys())
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
@@ -319,8 +339,8 @@ class AllocatorUnit:
         # sort result by the number of branches in the flow graph
         sorted_remaining_old_slot = sorted(remaining_old_slot, \
                                            key=lambda s: \
-                                            sum([nx.number_of_edges(self.flow_dict_for_slot_allocation[flow_id].flow_graph) \
-                                                 for flow_id, slot_id in coloring.items() if slot_id == s]))
+                                            sum([self.flow_dict_for_slot_allocation[flow_id].flow_graph.number_of_edges() \
+                                                 for flow_id, slot_id in coloring.items() if slot_id == s]), reverse=True)
         for old, new in zip(sorted_remaining_old_slot, sorted(list(remaining_new_slot))):
             convert[old] = new
 
@@ -363,7 +383,7 @@ class AllocatorUnit:
     ##---------------------------------------------------------
     def get_total_communication_flow_edges(self):
         self.set_flow_dict_for_slot_allocation()
-        return sum([nx.number_of_edges(flow.flow_graph) for flow in self.flow_dict.values()])
+        return sum([flow.flow_graph.number_of_edges() for flow in self.flow_dict.values()])
     
     ##---------------------------------------------------------
     def board_num_to_be_routed(self):
@@ -430,15 +450,10 @@ class AllocatorUnit:
     
     ##---------------------------------------------------------
     def __eq__(self, other):
-        for vNode_id in self.vNode_dict.keys():
-            if self.vNode_dict[vNode_id].rNode_id != other.vNode_dict[vNode_id].rNode_id:
-                return False
-        
-        for pair_id in self.pair_dict.keys():
-            if self.pair_dict[pair_id].path != other.pair_dict[pair_id].path:
-                return False
-        
-        return True
+        intersection_graph = nx.intersection(self.topology, other.topology)
+        return (intersection_graph.number_of_edges() == self.topology.number_of_edges()) \
+               and (intersection_graph.number_of_nodes() == self.topology.number_of_nodes()) \
+               and (self.app_dict == other.app_dict)
 
     ##---------------------------------------------------------
     def __deepcopy__(self, memo):

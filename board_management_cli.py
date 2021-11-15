@@ -1,7 +1,8 @@
+#!/usr/bin/env python3
+
 import cmd
 import os
 import subprocess
-from datetime import datetime, timedelta, timezone
 import argparse
 from queue import Queue
 import pickle
@@ -130,6 +131,11 @@ class BoardManagementCLI(cmd.Cmd):
                             help='topology file')
         parser.add_argument('-f', '--force', action='store_true', help='Forcibly initialize')
 
+        try:
+            args = parser.parse_args(args=line.split())
+        except SystemExit:
+            return None
+
         if (self.ba is not None) and (not args.force):
             print("Other allocator has already been loaded.")
             ans = input("Wipe the currrent allocator and set up a new one? [y/n]: ")
@@ -143,11 +149,6 @@ class BoardManagementCLI(cmd.Cmd):
                     ans = input("Please input y or n: ")
                 if ans == 'y':
                     self.do_save()
-        
-        try:
-            args = parser.parse_args(args=line.split())
-        except SystemExit:
-            return None
         
         self.ba = BoardAllocator(args.topo_file)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
@@ -193,7 +194,7 @@ class BoardManagementCLI(cmd.Cmd):
         arg_name2Arg = {'-o': Arg(1, self._filename_completion),
                         '--output': Arg(1, self._filename_completion),
                         '-f': Arg(0),
-                        '--force': arg(0)}
+                        '--force': Arg(0)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
     
     ##---------------------------------------------------------
