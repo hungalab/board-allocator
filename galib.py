@@ -32,11 +32,11 @@ def cx_by_mask(parent0, parent1, mask):
             # deallocate pairs whose dst or src is changed
             for pair in vNode.send_pair_list:
                 if mask[pair.dst_vNode.vNode_id] != bit:
-                    oplib.pair_deallocation(child, pair.pair_id)
+                    child.pair_deallocation(pair.pair_id)
             
             for pair in vNode.recv_pair_list:
                 if mask[pair.src_vNode.vNode_id] != bit:
-                    oplib.pair_deallocation(child, pair.pair_id)
+                    child.pair_deallocation(pair.pair_id)
         
         elif bit == 1:
             old_rNode_id = vNode.rNode_id
@@ -59,17 +59,17 @@ def cx_by_mask(parent0, parent1, mask):
             # update pairs
             for pair in vNode.send_pair_list:
                 if mask[pair.dst_vNode.vNode_id] != bit:
-                    oplib.pair_deallocation(child, pair.pair_id)
+                    child.pair_deallocation(pair.pair_id)
                 else:
                     path = parent1.pair_dict[pair.pair_id].path
-                    oplib.pair_allocation(child, pair.pair_id, path)
+                    child.pair_allocation(pair.pair_id, path)
             
             for pair in vNode.recv_pair_list:
                 if mask[pair.src_vNode.vNode_id] != bit:
-                    oplib.pair_deallocation(child, pair.pair_id)
+                    child.pair_deallocation(pair.pair_id)
                 else:
                     path = parent1.pair_dict[pair.pair_id].path
-                    oplib.pair_allocation(child, pair.pair_id, path)
+                    child.pair_allocation(pair.pair_id, path)
         
         else:
             old_rNode_id = vNode.rNode_id
@@ -82,22 +82,22 @@ def cx_by_mask(parent0, parent1, mask):
             # send-path deallocation
             for send_pair in vNode.send_pair_list:
                 if send_pair.path is not None:
-                    oplib.pair_deallocation(child, send_pair.pair_id)
+                    child.pair_deallocation(send_pair.pair_id)
 
             # recv-path deallocation
             for recv_pair in vNode.recv_pair_list:
                 if recv_pair.path is not None:
-                    oplib.pair_deallocation(child, recv_pair.pair_id)
+                    child.pair_deallocation(recv_pair.pair_id)
 
     # allocate unallocated vNodes
     for vNode in child.allocating_vNode_list:
         if vNode.rNode_id is None:
-            oplib.random_node_allocation(child, vNode.vNode_id)
+            child.random_node_allocation(vNode.vNode_id)
 
     # allocate unallocated pairs
     for pair in child.allocating_pair_list:
         if pair.path is None:
-            oplib.random_pair_allocation(child, pair.pair_id)
+            child.random_pair_allocation(pair.pair_id)
 
     # delete the fitness
     del child.fitness.values
@@ -180,11 +180,7 @@ def mut_swap(individual, mut_pb):
         del ind.fitness.values
 
     return ind,
-
-#--------------------------------------------------------------
-def initialization_with_solution(solution, constructor):
-    return solution(constructor())
-
+    
 #--------------------------------------------------------------
 def wrapper(func, args):
     return func(*args)
@@ -221,8 +217,8 @@ class GA:
 
         # toolbox settings
         self.toolbox.register("empty_individual", creator.Individual, None, seed)
-        self.toolbox.register("individual", initialization_with_solution, \
-                              oplib.generate_initial_solution, self.toolbox.empty_individual)
+        self.__ind_seed = self.toolbox.empty_individual()
+        self.toolbox.register("individual", oplib.generate_initial_solution, self.__ind_seed)
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         self.toolbox.register("evaluate", Evaluator.evaluate)
         self.toolbox.register("mate", cx_uniform)
