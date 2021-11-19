@@ -23,7 +23,7 @@ class Pair:
         self.dst = dst
         self.src_vNode: Optional[VNode] = None
         self.dst_vNode: Optional[VNode] = None
-        self.path: Optional[list[int]] = None # using path list
+        self.path: Optional[tuple[int]] = None # using path list
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: Pair) -> bool:
@@ -134,18 +134,18 @@ class AllocatorUnit:
             self.temp_allocated_rNode_dict: dict[int, int] = dict() # dict: (rNode_id in allocating) |-> vNode_id
             self.empty_rNode_set: set[int] = set(self.topology.nodes) # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
             ## shortest path list
-            self.st_path_table: list[list[list[int]]] = None # 2D list of path: st_path_table[src][dst] = [path0, path1, ...] <return value is 1D list of path(1D list)>
+            self.st_path_table: tuple[tuple[tuple[tuple[int]]]] = None # st_path_table[src][dst] = [path0, path1, ...]
             ## slot management
             self.flow_dict_for_slot_allocation: Optional[dict[int, Flow]] = None
             self.flow_dict_for_slot_allocation_valid: bool = False
 
             # create st-path list
             node_num = self.topology.number_of_nodes()
-            self.st_path_table = [[[] for _ in range(0, node_num)] for _ in range(0, node_num)]
-            for src in range(0, node_num):
-                for dst in range(0, node_num):
-                    for path in nx.all_shortest_paths(self.topology, src, dst):
-                        self.st_path_table[src][dst].append([path[0]] + path)
+            self.st_path_table \
+                = tuple(tuple(tuple(tuple([path[0]] + path) 
+                                    for path in nx.all_shortest_paths(self.topology, src, dst)) 
+                              for dst in range(0, node_num)) 
+                        for src in range(0, node_num))
         
         elif (topology is None) and (seed is not None):
             if isinstance(seed, AllocatorUnit):
@@ -287,7 +287,7 @@ class AllocatorUnit:
         self.flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
-    def pair_allocation(self, pair_id: int, path: list[int]):
+    def pair_allocation(self, pair_id: int, path: tuple[int]):
         # update path
         self.pair_dict[pair_id].path = path
 
