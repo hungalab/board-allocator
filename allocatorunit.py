@@ -571,23 +571,22 @@ class AllocatorUnit:
         return (total_hops / len(self.pair_dict)) - 2
     
     ##-----------------------------------------------------------------------------------
-    def save_au(self, 
-                file_name: Optional[str] = None, 
-                protocol: int = pickle.HIGHEST_PROTOCOL):
-        if file_name is None:
-            return pickle.dumps(self, protocol)
-        else:
-            with open(file_name, 'wb') as f:
-                pickle.dump(self, f, protocol)
+    def dumps(self, protocol: int = pickle.HIGHEST_PROTOCOL) -> bytes:
+        return pickle.dumps(self, protocol)
+    
+    ##-----------------------------------------------------------------------------------
+    def dump(self, file_name: str, protocol: int = pickle.HIGHEST_PROTOCOL):
+        with open(file_name, 'wb') as f:
+            pickle.dump(self, f, protocol)
     
     ##-----------------------------------------------------------------------------------
     @staticmethod
-    def load_au_from_obj(obj: bytes) -> AllocatorUnit:
+    def loads(obj: bytes) -> AllocatorUnit:
         return pickle.loads(obj)
     
     ##-----------------------------------------------------------------------------------
     @staticmethod
-    def load_au_from_file(file_name: str) -> AllocatorUnit:
+    def load(file_name: str) -> AllocatorUnit:
         with open(file_name, 'rb') as f:
             data = pickle.load(f)
         return data
@@ -654,4 +653,4 @@ class AllocatorUnit:
 
     ##-----------------------------------------------------------------------------------
     def __deepcopy__(self, memo) -> AllocatorUnit:
-        return pickle.loads(pickle.dumps(self, pickle.HIGHEST_PROTOCOL))
+        return self.loads(self.dumps())
