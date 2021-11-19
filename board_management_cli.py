@@ -530,7 +530,8 @@ class BoardManagementCLI(cmd.Cmd):
     ##-----------------------------------------------------------------------------------
     def complete_show_apps(self, text, line, begidx, endidx):
         completor = partial(self._completion_by_iterable, 
-                            iterable=self.__SHOW_APPS_COND_VARS)
+                            iterable=self.__SHOW_APPS_COND_VARS,
+                            is_expr=True)
         arg_name2Arg = {'--where': Arg(float('inf'), completor), 
                         '-w': Arg(float('inf'), completor)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
@@ -561,7 +562,8 @@ class BoardManagementCLI(cmd.Cmd):
     ##-----------------------------------------------------------------------------------
     def complete_show_nodes(self, text, line, begidx, endidx):
         completor = partial(self._completion_by_iterable, 
-                            iterable=self.__SHOW_NODES_COND_VARS)
+                            iterable=self.__SHOW_NODES_COND_VARS,
+                            is_expr=True)
         arg_name2Arg = {'--where': Arg(float('inf'), completor), 
                         '-w': Arg(float('inf'), completor)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
@@ -592,7 +594,8 @@ class BoardManagementCLI(cmd.Cmd):
     ##-----------------------------------------------------------------------------------
     def complete_show_flows(self, text, line, begidx, endidx):
         completor = partial(self._completion_by_iterable, 
-                            iterable=self.__SHOW_FLOWS_COND_VARS)
+                            iterable=self.__SHOW_FLOWS_COND_VARS, 
+                            is_expr=True)
         arg_name2Arg = {'--where': Arg(float('inf'), completor), 
                         '-w': Arg(float('inf'), completor)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
@@ -800,24 +803,48 @@ class BoardManagementCLI(cmd.Cmd):
 
     ##-----------------------------------------------------------------------------------
     @staticmethod
-    def _completion_by_iterable(arg: str, iterable: Iterable) -> list[str]:
+    def _completion_by_iterable(arg: str, 
+                                iterable: Iterable, 
+                                is_expr: bool = False
+                                ) -> list[str]:
         '''
         arg: a string
         iterable: an iterable object of string
+        is_expr: whether arg is part of an expression or not
         '''
-        if arg == '':
-            return [str(elm) + ' ' for elm in iterable]
+        if is_expr:
+            base_pattern = '\(|\[|\{|\+|\-|\*\*|\*|\/\/|\||\/|\%|\~|\&|\,|\^|\=\=|\!\='\
+                           '|\<\=|\>\=|\<\<|\<|\>\>|\>'
+            pattern = re.compile(base_pattern)
+            arg_header = arg
+            arg = pattern.split(arg)[-1]
+            arg_header = arg_header[:-len(arg)]
+
+            if arg == '':
+                candidates = [str(elm) + ' ' for elm in iterable]
+            else:
+                candidates = [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
+            
+            if len(candidates) == 1:
+                return [arg_header + candidates[0]]
+            else:
+                return candidates
         else:
-            return [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
+            if arg == '':
+                return [str(elm) + ' ' for elm in iterable]
+            else:
+                return [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
     
     ##-----------------------------------------------------------------------------------
     @staticmethod
     def _make_condition(cond_str_list: list[str], argument_strs: Iterable[str]) -> str:
-        base_pattern = '\d*\.\d+|\d+\.\d*|\d+|\(|\)|\[|\]|\{|\}|\+|\-|\*+|/+|\%|\~|\|'\
-                       '|\&|\,|\^|\<+|\>+|\=\=|\!\=|\<\=|\>\=|is|not|in|and|or|not|if'\
-                       '|else|None'
+        base_pattern = '\d*\.\d+|\d+\.\d*|\d+|\(|\)|\[|\]|\{|\}|\+|\-|\*\*|\*|\/\/|\|'\
+                       '|\/|\%|\~|\&|\,|\^|\=\=|\!\=|\<\=|\>\=|\<\<|\<|\>\>|\>|is|not'\
+                       '|in|and|or|not|if|else|None'
         pattern_str = '|'.join([base_pattern] + argument_strs)
         pattern = re.compile(pattern_str)
+
+        print(cond_str_list)
         
         cond = ''
         for text in cond_str_list:
@@ -848,10 +875,7 @@ class BoardManagementCLI(cmd.Cmd):
                 print(s.rstrip('\n'))
             return None
 
-        header = 'lambda '
-        for var in acceptable_variables:
-            header += var + ', '
-        header = header[:-2] + ': '
+        header = 'lambda ' + ', '.join(acceptable_variables) + ': '
         try:
             func = eval(header + cond)
         except SyntaxError as e:
