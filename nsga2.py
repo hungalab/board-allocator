@@ -125,9 +125,9 @@ class NSGA2(GA):
             # selection
             pop += offsprings
             if eliminate_dups:
-                pop_len = len(pop)
-                pop = [elm for index, elm in enumerate(pop) if elm not in pop[:index]]
-                dups = pop_len - len(pop)
+                dups = len(pop)
+                pop = AllocatorUnit.unique(pop)
+                dups -= len(pop)
             else:
                 dups = 'N/A'
             pop = self.toolbox.select(pop, min(self.pop_num, len(pop)))

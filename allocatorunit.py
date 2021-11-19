@@ -2,7 +2,7 @@ from __future__ import annotations
 import pickle
 import copy
 import random
-from typing import Optional
+from typing import Optional, Iterable
 
 import networkx as nx
 
@@ -26,6 +26,13 @@ class Pair:
         self.path: Optional[tuple[int]] = None # using path list
     
     ##-----------------------------------------------------------------------------------
+    def _hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
+        '''
+        return hash((self.pair_id, self.src, self.dst, self.path))
+    
+    ##-----------------------------------------------------------------------------------
     def __eq__(self, other: Pair) -> bool:
         return (self.pair_id == other.pair_id) and (self.src == other.src) \
                and (self.dst == other.dst) and (self.path == other.path)
@@ -38,12 +45,14 @@ class Flow:
         self.slot_id: Optional[int] = None
         self.flow_graph: Optional[nx.DiGraph] = None
     
+    ##-----------------------------------------------------------------------------------
     def make_flow_graph(self):
         self.flow_graph = nx.DiGraph()
         for pair in self.pair_list:
             path = pair.path
             nx.add_path(self.flow_graph, path)
 
+    ##-----------------------------------------------------------------------------------
     def merge(self, other: Flow):
         if self.flow_id is None:
             self.flow_id = slot_encrypt(other.slot_id)
@@ -52,6 +61,15 @@ class Flow:
         if self.slot_id is None:
             self.slot_id = other.slot_id
         self.pair_list += other.pair_list
+    
+    ##-----------------------------------------------------------------------------------
+    def _hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
+        '''
+        return hash((self.flow_id, 
+                     tuple(pair._hasher() for pair in self.pair_list), 
+                     self.slot_id))
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: Flow) -> bool:
@@ -70,6 +88,13 @@ class VNode:
         self.rNode_id: Optional[int] = None # physical node id: None means unallocated
     
     ##-----------------------------------------------------------------------------------
+    def _hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
+        '''
+        return hash((self.vNode_id, self.rNode_id))
+    
+    ##-----------------------------------------------------------------------------------
     def __eq__(self, other: VNode) -> bool:
         return (self.vNode_id == other.vNode_id) and (self.rNode_id == other.rNode_id)
 
@@ -84,6 +109,16 @@ class App:
         self.vNode_list = vNode_list # list of vNodes of the App
         self.flow_list = flow_list # list of flows of the App
         self.pair_list = pair_list # list of pairs of the App
+    
+    ##-----------------------------------------------------------------------------------
+    def _hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique()
+        '''
+        return hash((self.app_id, 
+                     tuple(vNode._hasher() for vNode in self.vNode_list),
+                     tuple(flow._hasher() for flow in self.flow_list), 
+                     tuple(pair._hasher() for pair in self.pair_list)))
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: App) -> bool:
@@ -594,6 +629,21 @@ class AllocatorUnit:
             print("dst: {}".format(pair.dst_vNode.vNode_id))
             print("path: {}".format(pair.path))
             print(" --------------------------------------------------- ")
+
+    ##-----------------------------------------------------------------------------------
+    def _hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique()
+        '''
+        return hash((tuple(self.topology.nodes), 
+                     tuple(self.topology.edges),
+                     tuple(app._hasher() for app in self.app_dict.values())))
+    
+    ##-----------------------------------------------------------------------------------
+    @staticmethod
+    def unique(units: Iterable[AllocatorUnit]) -> list[AllocatorUnit]:
+        uniquer = {au._hasher(): au for au in units}
+        return list(uniquer.values())
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: AllocatorUnit) -> bool:
