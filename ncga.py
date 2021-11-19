@@ -1,7 +1,9 @@
+from __future__ import annotations
 import time
 import random
 import multiprocessing
 import itertools
+from typing import Optional
 
 from deap import tools
 
@@ -10,13 +12,19 @@ from deap import tools
 # my library
 from galib import GA, my_multiprocessing_map
 from evaluator import Evaluator
+from allocatorunit import AllocatorUnit
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class NCGA(GA):
     SORT_METHOD_LIST = ['cyclic', 'random']
 
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.5, archive_size=40, \
-                 offspring_size=None, sort_method='cyclic'):
+    def __init__(self, 
+                 seed: AllocatorUnit | bytes | str, 
+                 mate_pb: float = 1, 
+                 mutation_pb: float = 0.5, 
+                 archive_size: int = 40, 
+                 offspring_size: Optional[int] = None, 
+                 sort_method: str = 'cyclic'):
         super().__init__(seed)
         self.toolbox.register("select", tools.selSPEA2)
         self.mate_pb = mate_pb
@@ -35,8 +43,8 @@ class NCGA(GA):
         else:
             raise ValueError("Invalid sort_method.")
 
-    ##---------------------------------------------------------
-    def run(self, exectution_time, process_num=1):
+    ##-----------------------------------------------------------------------------------
+    def run(self, exectution_time: float, process_num: int = 1) -> tools.ParetoFront:
         # multiprocessing settings
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
@@ -66,7 +74,7 @@ class NCGA(GA):
 
         # record
         record = self.stats.compile(pop)
-        record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+        record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} 
                   for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), **record)
 
@@ -84,7 +92,7 @@ class NCGA(GA):
                           map(self.toolbox.mate, parents[::2], parents[1::2], mate_pb_array)))
 
             # offsprings' mutation
-            offsprings = list(itertools.chain.from_iterable(\
+            offsprings = list(itertools.chain.from_iterable(
                           map(self.toolbox.mutate, offsprings, mut_pb_array)))
             
             # evatuate offsprings
@@ -109,7 +117,7 @@ class NCGA(GA):
 
             # record
             record = self.stats.compile(pop)
-            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} 
                       for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), **record)
 
@@ -122,7 +130,8 @@ class NCGA(GA):
         indbook = tools.Logbook()
         indbook.header = ['index'] + Evaluator.eval_list()
         for i, ind in enumerate(hall_of_fame):
-            record = {name: value for name, value in zip(Evaluator.eval_list(), ind.fitness.values)}
+            record = {name: value 
+                      for name, value in zip(Evaluator.eval_list(), ind.fitness.values)}
             indbook.record(index=i, **record)
         print(indbook.stream)
     

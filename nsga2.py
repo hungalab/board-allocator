@@ -1,6 +1,8 @@
+from __future__ import annotations
 import time
 import multiprocessing
 import itertools
+from typing import Optional
 
 from deap import tools
 
@@ -10,11 +12,16 @@ from deap import tools
 from galib import GA, my_multiprocessing_map, mate_or_mutate
 from evaluator import Evaluator
 import alns
+from allocatorunit import AllocatorUnit
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class NSGA2(GA):
-    def __init__(self, seed, mate_pb=0.7, mutation_pb=0.3, archive_size=40, \
-                 offspring_size=None):
+    def __init__(self, 
+                 seed: AllocatorUnit | bytes | str, 
+                 mate_pb: float = 0.7, 
+                 mutation_pb: float = 0.3, 
+                 archive_size: int = 40, 
+                 offspring_size: Optional[int] = None):
         super().__init__(seed)
         self.toolbox.register("select", tools.selNSGA2)
         self.mate_pb = mate_pb
@@ -27,8 +34,12 @@ class NSGA2(GA):
         else:
             raise ValueError("offspring_size must be a multiple of 4.")
     
-    ##---------------------------------------------------------
-    def run(self, exectution_time, process_num=1, eliminate_dups=True):
+    ##-----------------------------------------------------------------------------------
+    def run(self, 
+            exectution_time: float, 
+            process_num: int = 1, 
+            eliminate_dups:bool = True
+            ) -> tools.ParetoFront:
         # multiprocessing settings
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
@@ -63,7 +74,8 @@ class NSGA2(GA):
 
         # record
         record = self.stats.compile(pop)
-        record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+        record = {eval_name: {"min": record["min"][i], 
+                              "avg": record["avg"][i], "max": record["max"][i]}
                   for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), dups='N/A', **record)
 
@@ -87,8 +99,9 @@ class NSGA2(GA):
             #              map(mate_or_mutate, mate_array, mutate_array, 
             #                  parents[::2], parents[1::2], mate_pb_array)))
             
-            offsprings = list(itertools.chain.from_iterable(\
-                          map(self.toolbox.mate, parents[::2], parents[1::2], [1] * (len(parents) // 2))))
+            offsprings = list(itertools.chain.from_iterable(
+                          map(self.toolbox.mate, parents[::2], parents[1::2], 
+                              [1] * (len(parents) // 2))))
 
             # offsprings' mutation
             #offsprings += list(itertools.chain.from_iterable(\
@@ -97,7 +110,8 @@ class NSGA2(GA):
             # 2-opt execution
             length = min(process_num, tournament_max_length)
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
-            selected = self.toolbox.map(alns.alns2, selected, [1] * length, [False] * length)
+            selected = self.toolbox.map(alns.alns2, selected, 
+                                        [1] * length, [False] * length)
             for ind in selected:
                 del ind.fitness.values
             offsprings += selected
@@ -132,7 +146,7 @@ class NSGA2(GA):
 
             # record
             record = self.stats.compile(pop)
-            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]}
                       for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, **record)
 

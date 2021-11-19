@@ -3,9 +3,12 @@ import random
 
 # my library
 import oplib
+from allocatorunit import AllocatorUnit
 
-#--------------------------------------------------------------
-def alns(au, max_execution_time, enable_log=True):
+#----------------------------------------------------------------------------------------
+def alns(au: AllocatorUnit, 
+         max_execution_time: float, 
+         enable_log: bool = True) -> AllocatorUnit:
     # probability changer
     p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
 
@@ -32,15 +35,18 @@ def alns(au, max_execution_time, enable_log=True):
         slot_num = au.get_avg_greedy_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, 
+                                                      best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease "
+                             "(slots: {} -> {}, hops: {} -> {})"
+                             .format(loops, best_slot_num, slot_num, 
+                                     best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
@@ -48,17 +54,19 @@ def alns(au, max_execution_time, enable_log=True):
 
     # logs
     if enable_log:
-        print("number of loops: {}".format(loops))
-        print("number of updates for slot decrease: {}".format(cnt_slot_change))
-        print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of loops: {}".format(loops))
+        print("# of updates for slot decrease: {}".format(cnt_slot_change))
+        print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
 
     return best
 
-#--------------------------------------------------------------
-def alns_only_pairs(au, max_execution_time, enable_log=True):
+#----------------------------------------------------------------------------------------
+def alns_only_pairs(au: AllocatorUnit, 
+                    max_execution_time: float, 
+                    enable_log: bool = True) -> AllocatorUnit:
     # probability changer
     p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
 
@@ -85,15 +93,18 @@ def alns_only_pairs(au, max_execution_time, enable_log=True):
         slot_num = au.get_avg_greedy_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, 
+                                                      best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease "
+                             "(slots: {} -> {}, hops: {} -> {})"
+                             .format(loops, best_slot_num, slot_num, 
+                                     best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
@@ -101,17 +112,19 @@ def alns_only_pairs(au, max_execution_time, enable_log=True):
 
     # logs
     if enable_log:
-        print("number of loops: {}".format(loops))
-        print("number of updates for slot decrease: {}".format(cnt_slot_change))
-        print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of loops: {}".format(loops))
+        print("# of updates for slot decrease: {}".format(cnt_slot_change))
+        print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
 
     return best
 
-#--------------------------------------------------------------
-def alns2(au, max_execution_time, enable_log=True):
+#----------------------------------------------------------------------------------------
+def alns2(au: AllocatorUnit, 
+          max_execution_time: float, 
+          enable_log: bool = True) -> AllocatorUnit:
     # probability changer
     p_range = 2 # normalization value
 
@@ -139,15 +152,18 @@ def alns2(au, max_execution_time, enable_log=True):
         slot_num = au.get_avg_greedy_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
+                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, 
+                                                      best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease (slots: {} -> {}, "\
-                             "hops: {} -> {})".format(loops, best_slot_num, slot_num, best_total_hops, total_hops))
+            updatelog.append("{:>6}th loop: update for total hops decrease "
+                             "(slots: {} -> {}, hops: {} -> {})"
+                             .format(loops, best_slot_num, slot_num, 
+                                     best_total_hops, total_hops))
             best = au
             best_slot_num = slot_num
             best_total_hops = total_hops
@@ -155,9 +171,9 @@ def alns2(au, max_execution_time, enable_log=True):
 
     # logs
     if enable_log:
-        print("number of loops: {}".format(loops))
-        print("number of updates for slot decrease: {}".format(cnt_slot_change))
-        print("number of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of loops: {}".format(loops))
+        print("# of updates for slot decrease: {}".format(cnt_slot_change))
+        print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)

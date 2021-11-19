@@ -1,8 +1,11 @@
 import random
 import copy
+from typing import Optional
 
-#--------------------------------------------------------------
-def generate_initial_solution(au):
+from allocatorunit import AllocatorUnit
+
+#----------------------------------------------------------------------------------------
+def generate_initial_solution(au: AllocatorUnit) -> AllocatorUnit:
     # copy au
     au = copy.deepcopy(au)
 
@@ -13,8 +16,8 @@ def generate_initial_solution(au):
 
     return au
 
-#--------------------------------------------------------------
-def update_all_paths_of_a_random_node(au):
+#----------------------------------------------------------------------------------------
+def update_all_paths_of_a_random_node(au: AllocatorUnit) -> AllocatorUnit:
     # copy au
     au = copy.deepcopy(au)
 
@@ -31,8 +34,10 @@ def update_all_paths_of_a_random_node(au):
 
     return au
 
-#--------------------------------------------------------------
-def node_swap(au, target_vNode_id=None):
+#----------------------------------------------------------------------------------------
+def node_swap(au: AllocatorUnit, 
+              target_vNode_id: Optional[int] = None
+              ) -> AllocatorUnit: 
     # copy au
     au = copy.deepcopy(au)
 
@@ -65,8 +70,11 @@ def node_swap(au, target_vNode_id=None):
 
     return au
 
-#--------------------------------------------------------------
-def break_and_repair(au, target_num, target='node'):
+#----------------------------------------------------------------------------------------
+def break_and_repair(au: AllocatorUnit, 
+                     target_num: int, 
+                     target: str='node'
+                     ) -> AllocatorUnit:
     # copy au
     au = copy.deepcopy(au)
 

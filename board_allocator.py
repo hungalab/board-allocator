@@ -1,3 +1,4 @@
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -8,6 +9,7 @@ import numpy as np
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 import random
+from typing import Optional, Callable
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -23,20 +25,20 @@ from spea2 import SPEA2
 from deap import tools
 
 FIG_DIR = 'figure'
-#--------------------------------------------------------------
-def clean_dir(s):
-    if os.path.isdir(s):
-        shutil.rmtree(s)
-    os.mkdir(s)
+#----------------------------------------------------------------------------------------
+def clean_dir(path: str):
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    os.mkdir(path)
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 def parser():
     parser = argparse.ArgumentParser(description='board allocator')
     parser.add_argument('-t', help='topology file', default='fic-topo-file-cross.txt')
     parser.add_argument('-c', help='communication partern (traffic file)', required=True)
-    parser.add_argument('-s', help='', default=0, type=int)
-    parser.add_argument('-m', help='', default=0, type=int)
-    parser.add_argument('-ho', help='', default=0, type=int)
+    parser.add_argument('-s', help='', default=0, type=float)
+    parser.add_argument('-m', help='', default=0, type=float)
+    parser.add_argument('-ho', help='', default=0, type=float)
     parser.add_argument('--method', help='method to use', default='NSGA2')
     parser.add_argument('-p', help='# of processes to use', default=1, type=int)
 
@@ -56,7 +58,7 @@ def parser():
     
     return args
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 JST = timezone(timedelta(hours=+9))
 def now():
     return datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S (%Z)')
@@ -64,9 +66,13 @@ def now():
 def default_filename():
     return datetime.now(JST).strftime('%Y-%m-%d-T%H%M-%S%f')
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class AppVirtualizer:
-    def __init__(self, label2vNode_id, label2flow_id, communicationFile, color):
+    def __init__(self, 
+                 label2vNode_id: dict[int, int], 
+                 label2flow_id: dict[int, int], 
+                 communicationFile: str, 
+                 color: str):
         self.label2vNode_id = label2vNode_id
         self.vNode_id2label = {value: key for key, value in self.label2vNode_id.items()}
         self.label2flow_id = label2flow_id
@@ -75,19 +81,19 @@ class AppVirtualizer:
         self.date = now()
         self.color = color
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class BoardAllocator:
-    def __init__(self, topologyFile):
+    def __init__(self, topologyFile: str):
         # define variable
         ## Allocator Unit
-        self.au = None
+        self.au: Optional[AllocatorUnit] = None
         ## record topology file
         self.topology_file = os.path.abspath(topologyFile)
         ## virtualization of the topology file
-        self.node_index2label = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
-        self.node_label2index = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
+        self.node_index2label: dict[int, int] = {} # dict: (index in self.au.topology) |-> (label in topologyFile)
+        self.node_label2index: dict[int, int] = {} # dict: (label in topologyFile) |-> (index in self.au.topology)
         ## virtualization of apps
-        self.app_id2vitrualizer = {} # dict: (app_id) |-> (virtualization table for app_id)
+        self.app_id2vitrualizer: dict[int, AppVirtualizer] = {} # dict: (app_id) |-> (virtualization table for app_id)
         ## id generators
         self.__vNode_id = 0 # the generator of vNode_id: it is used only in generate_vNode_id() method
         self.__pair_id = 0 # the generator of pair_id: it is used only in generate_pair_id() method
@@ -109,7 +115,8 @@ class BoardAllocator:
         topology.add_nodes_from(range(verticesNum))
 
         self.node_index2label = {i: label for i, label in enumerate(list_tmp)}
-        self.node_label2index = {value: key for key, value in self.node_index2label.items()}
+        self.node_label2index = {value: key 
+                                 for key, value in self.node_index2label.items()}
 
         # make bi-directional edges
         for e in topo_tmp:
@@ -120,79 +127,69 @@ class BoardAllocator:
         self.au = AllocatorUnit(topology)
 
     # genaration of vNode_id: it is used only when you create a new VNode
-    ##---------------------------------------------------------
+    ##-----------------------------------------------------------------------------------
     def __generate_vNode_id(self):
         givenId = self.__vNode_id
         self.__vNode_id += 1
         return givenId
     
     # genaration of pair_id: it is used only when you create a new Pair
-    ##---------------------------------------------------------
+    ##-----------------------------------------------------------------------------------
     def __generate_pair_id(self):
         givenId = self.__pair_id
         self.__pair_id += 1
         return givenId
 
     # genaration of flow_id: it is used only when you find a new flow label
-    ##---------------------------------------------------------
+    ##-----------------------------------------------------------------------------------
     def __generate_flow_id(self):
         givenId = self.__flow_id
         self.__flow_id += 1
         return givenId
     
     # genaration of app_id: it is used only when you create a new App
-    ##---------------------------------------------------------
+    ##-----------------------------------------------------------------------------------
     def __generate_app_id(self):
         givenId = self.__app_id
         self.__app_id += 1
         return givenId
 
-    ##---------------------------------------------------------
-    def load_app(self, communicationFile):
+    ##-----------------------------------------------------------------------------------
+    def load_app(self, communicationFile: str) -> bool:
         # read communication file
         comm_tmp = np.loadtxt(communicationFile, dtype='int').tolist()
 
         # make dictionary that convert labels to vNode_id or flow_id
-        list_tmp = list(r[0] for r in comm_tmp) + list(r[1] for r in comm_tmp)
-        vNode_label_list = list(set(list_tmp))
-        label2vNode_id = {label:self.__generate_vNode_id() for label in vNode_label_list} # a dictionary for _id
-        list_tmp = list(r[2] for r in comm_tmp)
-        list_tmp = list(set(list_tmp))
-        label2flow_id = {label:self.__generate_flow_id() for label in list_tmp} # a dictionary for flow_id
+        vNode_labels = {r[0] for r in comm_tmp} | {r[1] for r in comm_tmp}
+        label2vNode_id = {label:self.__generate_vNode_id() for label in vNode_labels} # a dictionary for _id
+        flow_labels = {r[2] for r in comm_tmp}
+        label2flow_id = {label:self.__generate_flow_id() for label in flow_labels} # a dictionary for flow_id
 
         # convert label to id
-        comm_tmp = [[label2vNode_id[pair[0]], label2vNode_id[pair[1]], label2flow_id[pair[2]]] \
-                    for pair in comm_tmp]
-        flow_tmp = {flow_id: [(pair[0], pair[1]) for pair in comm_tmp if pair[2] == flow_id] \
-                    for flow_id in label2flow_id.values()}
+        comm_tmp = [[label2vNode_id[p[0]], label2vNode_id[p[1]], label2flow_id[p[2]]]
+                    for p in comm_tmp]
         
-        # make Flows and Pairs
-        pair_list = list()
-        flow_list = list()
-        for flow_id, flow in flow_tmp.items():
-            tmp_pair_list = [Pair(self.__generate_pair_id(), pair[0], pair[1]) for pair in flow]
-            flow_list.append(Flow(flow_id, tmp_pair_list))
-            pair_list += tmp_pair_list
+        # make Pairs
+        flow2pairs = {flow_id: [Pair(self.__generate_pair_id(), p[0], p[1]) 
+                              for p in comm_tmp if p[2] == flow_id]
+                    for flow_id in label2flow_id.values()}
+        pair_list = [pair for pairs in flow2pairs.values() for pair in pairs]
+        
+        # make Flows
+        flow_list = [Flow(flow_id, pairs) for flow_id, pairs in flow2pairs.items()]
 
         # make vNodes
-        vNode_list = list()
-        vNode_id_list = [label2vNode_id[elm] for elm in vNode_label_list]
-        for vNode_id in vNode_id_list:
-            send_pair_list, recv_pair_list = list(), list()
-            for pair in pair_list:
-                if pair.src == vNode_id:
-                    send_pair_list.append(pair)
-                elif pair.dst == vNode_id:
-                    recv_pair_list.append(pair)
-            vNode_list.append(VNode(vNode_id, send_pair_list, recv_pair_list))
+        vNode_id_list = [label2vNode_id[elm] for elm in vNode_labels]
+        vNode_list = [VNode(vNode_id, 
+                            [pair for pair in pair_list if pair.src == vNode_id], 
+                            [pair for pair in pair_list if pair.dst == vNode_id]) 
+                      for vNode_id in vNode_id_list]
         
         # set Pair.src_vNode or Pair.dst_vNode
+        vNode_dict = {vNode.vNode_id: vNode for vNode in vNode_list}
         for pair in pair_list:
-            for vNode in vNode_list:
-                if pair.src == vNode.vNode_id:
-                    pair.src_vNode = vNode
-                elif pair.dst == vNode.vNode_id:
-                    pair.dst_vNode = vNode
+            pair.src_vNode = vNode_dict[pair.src]
+            pair.dst_vNode = vNode_dict[pair.dst]
 
         # make App
         app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list)
@@ -205,8 +202,8 @@ class BoardAllocator:
         else:
             return False
     
-    ##---------------------------------------------------------
-    def remove_app(self, app_id):
+    ##-----------------------------------------------------------------------------------
+    def remove_app(self, app_id: int):
         if app_id not in self.app_id2vitrualizer.keys():
             raise ValueError("app_id {} does not exists.".format(app_id))
         # remove from au
@@ -216,8 +213,12 @@ class BoardAllocator:
         # delete the virtaulizer
         del self.app_id2vitrualizer[app_id]
     
-    ##---------------------------------------------------------
-    def run_optimization(self, max_execution_time, method, process_num=1):
+    ##-----------------------------------------------------------------------------------
+    def run_optimization(self, 
+                         max_execution_time: float, 
+                         method: str, 
+                         process_num: int = 1):
+        # type: (float, str, int) -> None
         print("selected method: {}".format(method))
         if method.lower() == '2-opt':
             self.au = alns.alns2(self.au, max_execution_time)
@@ -240,105 +241,115 @@ class BoardAllocator:
         
         self.au.apply()
     
-    ##---------------------------------------------------------
-    def two_opt(self, execution_time):
+    ##-----------------------------------------------------------------------------------
+    def two_opt(self, execution_time: float):
         self.au = alns.alns2(self.au, execution_time)
         self.au.apply()
     
-    ##---------------------------------------------------------
-    def alns(self, execution_time):
+    ##-----------------------------------------------------------------------------------
+    def alns(self, execution_time: float):
         self.au = alns.alns(self.au, execution_time)
         self.au.apply()
     
-    ##---------------------------------------------------------
-    def nsga2(self, execution_time, 
-              process_num=1, 
-              mate_pb=0.7, 
-              mutation_pb=0.3, 
-              archive_size=40, 
-              offspring_size=None
-              ):
+    ##-----------------------------------------------------------------------------------
+    def nsga2(self, 
+              execution_time : float, 
+              process_num: int = 1, 
+              mate_pb: float = 0.7, 
+              mutation_pb: float = 0.3, 
+              archive_size: int = 40, 
+              offspring_size: Optional[int] = None) -> tools.ParetoFront:
         seed = self.au.save_au()
         nsga2 = NSGA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
         hall_of_fame = nsga2.run(execution_time, process_num)
 
         return hall_of_fame
 
-    ##---------------------------------------------------------
-    def spea2(self, execution_time, 
-              process_num=1, 
-              mate_pb=1, 
-              mutation_pb=0.3, 
-              archive_size=40, 
-              offspring_size=None
-              ):
+    ##-----------------------------------------------------------------------------------
+    def spea2(self, 
+              execution_time: float, 
+              process_num: int = 1, 
+              mate_pb: float = 1, 
+              mutation_pb: float = 0.3, 
+              archive_size: int = 40, 
+              offspring_size: Optional[int] = None) -> tools.ParetoFront:
         seed = self.au.save_au()
         spea2 = SPEA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
         hall_of_fame = spea2.run(execution_time, process_num)
 
         return hall_of_fame
     
-    ##---------------------------------------------------------
-    def ncga(self, execution_time, 
-              process_num=1, 
-              mate_pb=0.7, 
-              mutation_pb=0.3, 
-              archive_size=40, 
-              offspring_size=None, 
-              sort_method='cyclic'
-              ):
+    ##-----------------------------------------------------------------------------------
+    def ncga(self, 
+             execution_time: float, 
+             process_num: int = 1, 
+             mate_pb: float = 0.7, 
+             mutation_pb: float = 0.3, 
+             archive_size: int = 40, 
+             offspring_size: Optional[int] = None, 
+             sort_method: str = 'cyclic'):
         seed = self.au.save_au()
-        ncga = NCGA(seed, mate_pb, mutation_pb, archive_size, offspring_size, sort_method)
+        ncga = NCGA(seed, mate_pb, mutation_pb, archive_size, 
+                    offspring_size, sort_method)
         hall_of_fame = ncga.run(execution_time, process_num)
 
         return hall_of_fame
 
-    ##---------------------------------------------------------
-    def select_from_hof(self, hof, index=None):
+    ##-----------------------------------------------------------------------------------
+    def select_from_hof(self, hof: tools.HallOfFame, index: Optional[int] = None):
         if index is None:
             pass ## select index
 
-        ## TBA
+        return hof[index]
 
-    ##---------------------------------------------------------
+    ##-----------------------------------------------------------------------------------
     def show_topology_file(self):
         print(self.topology_file)
 
-    ##---------------------------------------------------------
-    def show_apps(self, key=lambda app_id: True):
+    ##-----------------------------------------------------------------------------------
+    def show_apps(self, key: Callable[[int], bool] = lambda app_id: True):
         apps_book = tools.Logbook()
         apps_book.header = ['app_id', 'communication', 'date']
         for app_id, appv in sorted(self.app_id2vitrualizer.items(), key=lambda item: item[0]):
             if key(app_id):
-                apps_book.record(app_id=app_id, communication=os.path.basename(appv.communicationFile), date=appv.date)
+                commfile = os.path.basename(appv.communicationFile)
+                apps_book.record(app_id=app_id, communication=commfile, date=appv.date)
         
         if len(apps_book) == 0:
             print("There are no items that match the condition.")
         else:
             print(apps_book.stream)
 
-    ##---------------------------------------------------------
-    def show_nodes(self, key=lambda app_id, vNode_id, rNode_id: True):
-        nodes_book = tools.Logbook()
-        nodes_book.header = ['app_id', 'vNode_id', 'rNode_id']
+    ##-----------------------------------------------------------------------------------
+    def show_nodes(self, 
+                   key: Callable[[int, int, int], bool] 
+                    = lambda app_id, vNode_id, rNode_id: True):
+        nodesbook = tools.Logbook()
+        nodesbook.header = ['app_id', 'vNode_id', 'rNode_id']
         for app_id, app in sorted(self.au.app_dict.items(), key=lambda item: item[0]):
-            for vNode in sorted(app.vNode_list, key=lambda vn: self.app_id2vitrualizer[app_id].vNode_id2label[vn.vNode_id]):
+            def label(vNode: VNode):
+                return self.app_id2vitrualizer[app_id].vNode_id2label[vNode.vNode_id]
+            for vNode in sorted(app.vNode_list, key=label):
                 vNode_id = self.app_id2vitrualizer[app_id].vNode_id2label[vNode.vNode_id]
                 rNode_id = vNode.rNode_id
                 if key(app_id, vNode_id, rNode_id):
-                    nodes_book.record(app_id=app_id, vNode_id=vNode_id, rNode_id=rNode_id)
+                    nodesbook.record(app_id=app_id, vNode_id=vNode_id, rNode_id=rNode_id)
         
-        if len(nodes_book) == 0:
+        if len(nodesbook) == 0:
             print("There are no items that match the condition.")
         else:
-            print(nodes_book.stream)
+            print(nodesbook.stream)
     
-    ##---------------------------------------------------------
-    def show_flows(self, key=lambda app_id, flow_id, slot_id: True):
+    ##-----------------------------------------------------------------------------------
+    def show_flows(self, 
+                   key: Callable[[int, int, int], bool] 
+                    = lambda app_id, flow_id, slot_id: True):
         flows_book = tools.Logbook()
         flows_book.header = ['app_id', 'flow_id', 'slot_id']
         for app_id, app in sorted(self.au.app_dict.items(), key=lambda item: item[0]):
-            for flow in sorted(app.flow_list, key=lambda f: self.app_id2vitrualizer[app_id].flow_id2label[f.flow_id]):
+            def label(flow: Flow):
+                return self.app_id2vitrualizer[app_id].flow_id2label[flow.flow_id]
+            for flow in sorted(app.flow_list, key=label):
                 flow_id = self.app_id2vitrualizer[app_id].flow_id2label[flow.flow_id]
                 slot_id = flow.slot_id
                 if key(app_id, flow_id, slot_id):
@@ -349,30 +360,37 @@ class BoardAllocator:
         else:
             print(flows_book.stream)
     
-    ##---------------------------------------------------------
-    def print_result(self, fully_desplay=False):
-        if len([vNode for vNode in self.au.vNode_dict.values() if vNode.rNode_id is not None]) == 0:
+    ##-----------------------------------------------------------------------------------
+    def print_result(self, fully_desplay: bool = False):
+        running_vNodes = [vNode for vNode in self.au.vNode_dict.values() 
+                          if vNode.rNode_id is not None]
+        if len(running_vNodes) == 0:
             print("the current allocator has no running app.")
             return
 
         if fully_desplay:
             self.au.print_au()
         
-        if len([pair for pair in self.au.pair_dict.values() if pair.path is not None]) != 0:
-            print("# of slots: {}".format(self.au.get_greedy_slot_num()))
-            print("# of hops: {}".format(self.au.get_total_communication_hops()))
-            print("# of boards to be routed: {}".format(self.au.board_num_to_be_routed()))
+        running_pairs = [pair for pair in self.au.pair_dict.values() 
+                         if pair.path is not None]
+        if len(running_pairs) != 0:
+            print("# of slots: {}".format(self.au.get_max_greedy_slot_num()))
+            print("average hops: {}".format(self.au.average_hops()))
+            print("# of routed boards: {}".format(self.au.board_num_to_be_routed()))
         else:
             print("the current allocator has no running app with communication.")
         
         self.draw_current_node_status()
     
-    ##---------------------------------------------------------
-    def draw_current_node_status(self, path=os.path.join(FIG_DIR, (default_filename()+'.png'))):
+    ##-----------------------------------------------------------------------------------
+    def draw_current_node_status(self, 
+                                 path: str 
+                                  = os.path.join(FIG_DIR, (default_filename()+'.png'))):
         ## settings for position
         pos = {i: (-(i // 4), i % 4) for i in self.node_index2label.keys()}
         ## settings for color
-        used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list if vNode.rNode_id is not None] \
+        used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list 
+                                           if vNode.rNode_id is not None] 
                               for app in self.au.app_dict.values()}
         node_color = ['gainsboro' for i in self.node_index2label.keys()]
         for app_id, used_nodes in used_nodes_for_app.items():
@@ -383,7 +401,7 @@ class BoardAllocator:
         plt.savefig(path)
         plt.close()
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
     clean_dir(FIG_DIR)

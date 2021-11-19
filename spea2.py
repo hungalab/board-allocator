@@ -1,7 +1,9 @@
+from __future__ import annotations
 import time
 import random
 import multiprocessing
 import itertools
+from typing import Optional
 
 from deap import tools
 
@@ -10,11 +12,16 @@ from deap import tools
 # my library
 from galib import GA, my_multiprocessing_map
 from evaluator import Evaluator
+from allocatorunit import AllocatorUnit
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class SPEA2(GA):
-    def __init__(self, seed, mate_pb=1, mutation_pb=0.3, archive_size=40, \
-                 offspring_size=None):
+    def __init__(self, 
+                 seed: AllocatorUnit | bytes | str, 
+                 mate_pb:float = 1, 
+                 mutation_pb: float = 0.3, 
+                 archive_size: int = 40,
+                 offspring_size: Optional[int] = None):
         super().__init__(seed)
         self.toolbox.register("select", tools.selSPEA2)
         self.mate_pb = mate_pb
@@ -28,8 +35,8 @@ class SPEA2(GA):
         else:
             raise ValueError("offspring_size must be a multiple of 2.")
 
-    ##---------------------------------------------------------
-    def run(self, exectution_time, process_num=1):
+    ##-----------------------------------------------------------------------------------
+    def run(self, exectution_time: float, process_num: int = 1) -> tools.ParetoFront:
         # multiprocessing settings
         if process_num != 1:
             pool = multiprocessing.Pool(process_num)
@@ -62,7 +69,7 @@ class SPEA2(GA):
 
         # record
         record = self.stats.compile(pop)
-        record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+        record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]}
                   for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), **record)
 
@@ -95,7 +102,7 @@ class SPEA2(GA):
 
             # record
             record = self.stats.compile(pop)
-            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]} \
+            record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]}
                       for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), **record)
 

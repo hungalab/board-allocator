@@ -1,8 +1,11 @@
+from __future__ import annotations
 import random
 import copy
 import collections
 import numpy
 from functools import partial
+import multiprocessing
+from typing import Callable, Iterable, Any
 
 from deap import tools
 from deap import base
@@ -13,8 +16,9 @@ from allocatorunit import AllocatorUnit
 from evaluator import Evaluator
 import oplib
 
-#--------------------------------------------------------------
-def mask_generator(sorted_vNode_id_list):
+#----------------------------------------------------------------------------------------
+def mask_generator(sorted_vNode_id_list: list[int]
+                   ) -> tuple[dict[int, int], dict[int, int]]:
     l0, l1 = dict(), dict()
     for vNode_id in sorted_vNode_id_list:
         bit = random.randint(0, 1)
@@ -22,8 +26,9 @@ def mask_generator(sorted_vNode_id_list):
         l1[vNode_id] = bit ^ 1
     return l0, l1
 
-#--------------------------------------------------------------
-def cx_by_mask(parent0, parent1, mask):
+#----------------------------------------------------------------------------------------
+def cx_by_mask(parent0: AllocatorUnit, parent1: AllocatorUnit, mask: dict[int, int]
+               ) -> tuple[AllocatorUnit]:
     child = copy.deepcopy(parent0)
 
     for vNode_id, bit in mask.items():
@@ -105,16 +110,19 @@ def cx_by_mask(parent0, parent1, mask):
     # flow_dict_for_slot_allocation_valid invalidation
     child.flow_dict_for_slot_allocation_valid = False
     
-    return child
+    return child,
 
 
-#--------------------------------------------------------------
-def cx_uniform(parent0, parent1, mate_pb=1.0):
+#----------------------------------------------------------------------------------------
+def cx_uniform(parent0: AllocatorUnit, parent1: AllocatorUnit, mate_pb: float = 1.0
+               ) -> tuple[AllocatorUnit, AllocatorUnit]:
     if len(parent0.temp_allocated_rNode_dict) != len(parent1.temp_allocated_rNode_dict):
-        raise ValueError("The number of nodes being allocated is different for each parent.")
+        raise ValueError("The number of nodes being allocated is "
+                         "different for each parent.")
     
     if len(parent0.allocating_pair_list) != len(parent1.allocating_pair_list):
-        raise ValueError("The number of communications being allocated is different for each parent.")
+        raise ValueError("The number of communications being allocated is "
+                         "different for each parent.")
     
     if not 0 <= mate_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
@@ -125,8 +133,8 @@ def cx_uniform(parent0, parent1, mate_pb=1.0):
         mask0, mask1 = mask_generator(sorted_vNode_id_list)
 
         ## check the duplication
-        next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit \
-                                            else parent0.vNode_dict[vNode_id].rNode_id \
+        next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit
+                                            else parent0.vNode_dict[vNode_id].rNode_id 
                                   for vNode_id, bit in mask0.items()}
         counter = collections.Counter(list(next_child0_rNode_dict.values()))
         for key, count in counter.items():
@@ -141,8 +149,8 @@ def cx_uniform(parent0, parent1, mate_pb=1.0):
                     elif rNode_id == key and current == selected:
                         current += 1
 
-        next_child1_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit \
-                                            else parent0.vNode_dict[vNode_id].rNode_id \
+        next_child1_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit
+                                            else parent0.vNode_dict[vNode_id].rNode_id
                                   for vNode_id, bit in mask1.items()}
         counter = collections.Counter(list(next_child1_rNode_dict.values()))
         for key, count in counter.items():
@@ -159,8 +167,8 @@ def cx_uniform(parent0, parent1, mate_pb=1.0):
                         current += 1
 
         # exectute crossover
-        child0 = cx_by_mask(parent0, parent1, mask0)
-        child1 = cx_by_mask(parent0, parent1, mask1)
+        child0, = cx_by_mask(parent0, parent1, mask0)
+        child1, = cx_by_mask(parent0, parent1, mask1)
 
     else:
         child0 = copy.deepcopy(parent0)
@@ -168,8 +176,9 @@ def cx_uniform(parent0, parent1, mate_pb=1.0):
 
     return child0, child1
 
-#--------------------------------------------------------------
-def mut_swap(individual, mut_pb):
+#----------------------------------------------------------------------------------------
+def mut_swap(individual: AllocatorUnit, mut_pb: float = 1.0) -> tuple[AllocatorUnit]:
+
     if not 0 <= mut_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
     
@@ -181,23 +190,38 @@ def mut_swap(individual, mut_pb):
 
     return ind,
     
-#--------------------------------------------------------------
-def wrapper(func, args):
+#----------------------------------------------------------------------------------------
+def wrapper(func: Callable[..., Any], args: Iterable) -> Any:
     return func(*args)
 
-#--------------------------------------------------------------
-def my_multiprocessing_map(pool, func, *iterable):
+#----------------------------------------------------------------------------------------
+def my_multiprocessing_map(pool: multiprocessing.Pool, 
+                           func: Callable[..., Any], 
+                           *iterable: Iterable) -> list:
     return pool.map(partial(wrapper, func), [elements for elements in zip(*iterable)])
 
-#--------------------------------------------------------------
-def mate_and_mutate(mate, mutate, parent0, parent1, mate_pb, mut_pb):
+#----------------------------------------------------------------------------------------
+def mate_and_mutate(mate: Callable[[AllocatorUnit, AllocatorUnit, float], 
+                                   tuple[AllocatorUnit, AllocatorUnit]], 
+                    mutate: Callable[[AllocatorUnit, float], tuple[AllocatorUnit]], 
+                    parent0: AllocatorUnit, 
+                    parent1: AllocatorUnit, 
+                    mate_pb: float, 
+                    mut_pb: float
+                    ) -> tuple[AllocatorUnit, AllocatorUnit]:
     child0, child1 = mate(parent0, parent1, mate_pb)
     child0, = mutate(child0, mut_pb)
     child1, = mutate(child1, mut_pb)
     return child0, child1
 
-#--------------------------------------------------------------
-def mate_or_mutate(mate, mutate, parent0, parent1, mate_pb):
+#----------------------------------------------------------------------------------------
+def mate_or_mutate(mate: Callable[[AllocatorUnit, AllocatorUnit, float], 
+                                   tuple[AllocatorUnit, AllocatorUnit]], 
+                   mutate: Callable[[AllocatorUnit, float], tuple[AllocatorUnit]], 
+                   parent0: AllocatorUnit, 
+                   parent1: AllocatorUnit, 
+                   mate_pb: float
+                   ) -> tuple[AllocatorUnit, AllocatorUnit]:
     if random.random() <= mate_pb:
         child0, child1 = mate(parent0, parent1, 1)
     else:
@@ -206,9 +230,9 @@ def mate_or_mutate(mate, mutate, parent0, parent1, mate_pb):
 
     return child0, child1
 
-#--------------------------------------------------------------
+#----------------------------------------------------------------------------------------
 class GA:
-    def __init__(self, seed):
+    def __init__(self, seed: AllocatorUnit | bytes | str):
         self.toolbox = base.Toolbox()
 
         # instance settings
