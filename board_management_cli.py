@@ -89,7 +89,7 @@ class BoardManagementCLI(cmd.Cmd):
         self.fig_thread: Optional[threading.Thread] = None
         self.fig_quit_event = threading.Event()
         self.is_saved = True
-        readline.set_completer_delims(' \t\n`!@#$\\;:,?')
+        readline.set_completer_delims(' \t\n`~!@#$%^&*()-=+[{]}\\|;:\'",<>/?')
         if not os.path.isdir(SAVE_DIR):
             os.mkdir(SAVE_DIR)
         if not os.path.isdir(FIG_DIR):
@@ -723,42 +723,51 @@ class BoardManagementCLI(cmd.Cmd):
     def _argparse_completion(text: str, line: str, begidx, endidx, 
                              arg_name2Arg: dict[str, Arg]) -> list[str]:
         ops_set = {a for a in arg_name2Arg.keys() if a.startswith('-')}
-        non_option_args = [a for a in arg_name2Arg.keys() if not a.startswith('-')]
-        non_option_args_q = Queue()
-        for elm in non_option_args:
-            non_option_args_q.put(elm)
+        required_args = [a for a in arg_name2Arg.keys() if not a.startswith('-')]
+        required_args_q = Queue()
+        for elm in required_args:
+            required_args_q.put(elm)
 
+        #import sys
+        #print("\ntext: {}, line : '{}'".format(text, line), file=sys.stderr)
         args = line.split()
         if line[-1] == ' ':
             args.append(text)
-        
-        if args[-1].startswith('-'):
-            return [ops_name + ' ' 
-                    for ops_name in ops_set if ops_name.startswith(args[-1])]
 
         ops = None
+        cnt = 0
         for i, arg in enumerate(args):
             if i == 0:
                 continue
             elif arg in ops_set:
                 ops = arg
                 cnt = 0
-            elif arg.startswith('-'):
-                return []
 
-            if ops is None:
-                if non_option_args_q.empty():
+            if (ops is None) and (i != len(args) - 1):
+                if required_args_q.empty():
                     return []
-                ops = non_option_args_q.get()
+                ops = required_args_q.get()
                 cnt = 1
 
-            if i == len(args) - 1 and cnt != 0:
+            if i == len(args) - 1:
+                #print('hi, {}, "{}"'.format(cnt, ops))
+                if cnt == 0:
+                    if arg.startswith('--'):
+                        return [ops_name[2:] + ' ' 
+                                for ops_name in ops_set 
+                                if ops_name.startswith(args[-1])]
+                    elif arg.startswith('-'):
+                        return [ops_name[1:] + ' ' 
+                                for ops_name in ops_set 
+                                if ops_name.startswith(args[-1]) 
+                                and (not ops_name.startswith('--'))]
                 try:
+                    #print("\nret : '{}'".format(arg_name2Arg[ops].func(arg)), file=sys.stderr)
                     return arg_name2Arg[ops].func(arg)
                 except KeyError:
                     return []
             
-            if ops is None or arg_name2Arg[ops].nargs == cnt:
+            if ops is None or arg_name2Arg[ops].nargs <= cnt:
                 ops = None
                 cnt = 0
             else: 
@@ -813,22 +822,20 @@ class BoardManagementCLI(cmd.Cmd):
         is_expr: whether arg is part of an expression or not
         '''
         if is_expr:
-            base_pattern = '\(|\[|\{|\+|\-|\*\*|\*|\/\/|\||\/|\%|\~|\&|\,|\^|\=\=|\!\='\
-                           '|\<\=|\>\=|\<\<|\<|\>\>|\>'
+            base_pattern = '\(|\)|\[|\]|\{|\}|\+|\-|\*\*|\*|\/\/|\||\/|\%|\~|\&|\,|\^'\
+                           '|\=\=|\!\=|\<\=|\>\=|\<\<|\<|\>\>|\>|\`|\!|\@|\#|\$|\\|\;'\
+                           '|\:|\'|\"|\?'
             pattern = re.compile(base_pattern)
-            arg_header = arg
+            line = arg
             arg = pattern.split(arg)[-1]
-            arg_header = arg_header[:-len(arg)]
+            if not line.endswith(arg):
+                return []
 
             if arg == '':
-                candidates = [str(elm) + ' ' for elm in iterable]
+                return [str(elm) + ' ' for elm in iterable]
             else:
-                candidates = [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
+                return [str(elm) + ' ' for elm in iterable if str(elm).startswith(arg)]
             
-            if len(candidates) == 1:
-                return [arg_header + candidates[0]]
-            else:
-                return candidates
         else:
             if arg == '':
                 return [str(elm) + ' ' for elm in iterable]
