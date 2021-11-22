@@ -636,7 +636,7 @@ class BoardManagementCLI(cmd.Cmd):
     def do_command(self, line):
         parser = argparse.ArgumentParser(prog="command", description='command test')
         parser.add_argument('arg1', help='a required file')
-        parser.add_argument('arg2', nargs='+', help='required files')
+        parser.add_argument('arg2', nargs='+', help='required directories')
         parser.add_argument('--arg3', choices=self.arg3_choices, help='choose one of them')
         parser.add_argument('--arg4', action='store_true', help='flag')
         parser.add_argument('--arg5', nargs='+', help='multiple args')
@@ -722,53 +722,66 @@ class BoardManagementCLI(cmd.Cmd):
     @staticmethod
     def _argparse_completion(text: str, line: str, begidx, endidx, 
                              arg_name2Arg: dict[str, Arg]) -> list[str]:
-        ops_set = {a for a in arg_name2Arg.keys() if a.startswith('-')}
+        '''
+        Note: 
+            arg in arg_name2Arg[option].func(arg) represents the string after the last 
+            blank in the line containing the string to be completed. Therefore, arg and 
+            text are generally different.
+            example:
+                line = 'command pareant/child'
+                text = 'child'
+                arg =  'parent/child'
+            
+            Specifying a character starting with '-', such as '-1' or '-arg', 
+            as an element in the list of return values for arg_name2Arg[option].func(arg)
+            may cause unintended behavior.
+        '''
+        option_set = {a for a in arg_name2Arg.keys() if a.startswith('-')}
         required_args = [a for a in arg_name2Arg.keys() if not a.startswith('-')]
         required_args_q = Queue()
         for elm in required_args:
             required_args_q.put(elm)
 
-        #import sys
-        #print("\ntext: {}, line : '{}'".format(text, line), file=sys.stderr)
         args = line.split()
         if line[-1] == ' ':
             args.append(text)
 
-        ops = None
+        option = None
         cnt = 0
         for i, arg in enumerate(args):
             if i == 0:
                 continue
-            elif arg in ops_set:
-                ops = arg
+            elif arg in option_set:
+                option = arg
                 cnt = 0
+            
+            if (i == len(args) - 1) and cnt == 0:
+                if arg.startswith('--'):
+                    return [option_name[2:] + ' ' 
+                            for option_name in option_set 
+                            if option_name.startswith(args[-1])]
+                elif arg.startswith('-'):
+                    candidates = [option_name[1:] + ' ' 
+                                  for option_name in option_set 
+                                  if option_name.startswith(args[-1]) 
+                                  and (not option_name.startswith('--'))]
+                    if len(candidates) > 0:
+                        return candidates
 
-            if (ops is None) and (i != len(args) - 1):
+            if option is None:
                 if required_args_q.empty():
                     return []
-                ops = required_args_q.get()
+                option = required_args_q.get()
                 cnt = 1
 
-            if i == len(args) - 1:
-                #print('hi, {}, "{}"'.format(cnt, ops))
-                if cnt == 0:
-                    if arg.startswith('--'):
-                        return [ops_name[2:] + ' ' 
-                                for ops_name in ops_set 
-                                if ops_name.startswith(args[-1])]
-                    elif arg.startswith('-'):
-                        return [ops_name[1:] + ' ' 
-                                for ops_name in ops_set 
-                                if ops_name.startswith(args[-1]) 
-                                and (not ops_name.startswith('--'))]
+            if (i == len(args) - 1) and cnt != 0:
                 try:
-                    #print("\nret : '{}'".format(arg_name2Arg[ops].func(arg)), file=sys.stderr)
-                    return arg_name2Arg[ops].func(arg)
+                    return arg_name2Arg[option].func(arg)
                 except KeyError:
                     return []
             
-            if ops is None or arg_name2Arg[ops].nargs <= cnt:
-                ops = None
+            if (option is None) or (arg_name2Arg[option].nargs <= cnt):
+                option = None
                 cnt = 0
             else: 
                 cnt += 1

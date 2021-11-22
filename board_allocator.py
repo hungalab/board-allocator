@@ -225,15 +225,15 @@ class BoardAllocator:
         elif method.lower() == 'alns':
             self.au = alns.alns(self.au, max_execution_time)
         elif method.lower() == 'nsga2':
-            seed = self.au.save_au()
+            seed = self.au.dumps()
             nsga2 = NSGA2(seed)
             hall_of_fame = nsga2.run(max_execution_time, process_num)
         elif method.lower() == 'ncga':
-            seed = self.au.save_au()
+            seed = self.au.dumps()
             ncga = NCGA(seed)
             hall_of_fame = ncga.run(max_execution_time, process_num)
         elif method.lower() == 'spea2':
-            seed = self.au.save_au()
+            seed = self.au.dumps()
             spea2 = SPEA2(seed)
             hall_of_fame = spea2.run(max_execution_time, process_num)
         else:
@@ -259,7 +259,7 @@ class BoardAllocator:
               mutation_pb: float = 0.3, 
               archive_size: int = 40, 
               offspring_size: Optional[int] = None) -> tools.ParetoFront:
-        seed = self.au.save_au()
+        seed = self.au.dumps()
         nsga2 = NSGA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
         hall_of_fame = nsga2.run(execution_time, process_num)
 
@@ -273,7 +273,7 @@ class BoardAllocator:
               mutation_pb: float = 0.3, 
               archive_size: int = 40, 
               offspring_size: Optional[int] = None) -> tools.ParetoFront:
-        seed = self.au.save_au()
+        seed = self.au.dumps()
         spea2 = SPEA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
         hall_of_fame = spea2.run(execution_time, process_num)
 
@@ -288,7 +288,7 @@ class BoardAllocator:
              archive_size: int = 40, 
              offspring_size: Optional[int] = None, 
              sort_method: str = 'cyclic'):
-        seed = self.au.save_au()
+        seed = self.au.dumps()
         ncga = NCGA(seed, mate_pb, mutation_pb, archive_size, 
                     offspring_size, sort_method)
         hall_of_fame = ncga.run(execution_time, process_num)
