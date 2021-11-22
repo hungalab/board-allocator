@@ -755,12 +755,12 @@ class BoardManagementCLI(cmd.Cmd):
                 option = arg
                 cnt = 0
             
-            if (i == len(args) - 1) and cnt == 0:
+            if (i == len(args) - 1):
                 if arg.startswith('--'):
                     return [option_name[2:] + ' ' 
                             for option_name in option_set 
                             if option_name.startswith(args[-1])]
-                elif arg.startswith('-'):
+                elif arg.startswith('-') and cnt == 0:
                     candidates = [option_name[1:] + ' ' 
                                   for option_name in option_set 
                                   if option_name.startswith(args[-1]) 
@@ -780,7 +780,7 @@ class BoardManagementCLI(cmd.Cmd):
                 except KeyError:
                     return []
             
-            if (option is None) or (arg_name2Arg[option].nargs <= cnt):
+            if (option is None) or (cnt >= arg_name2Arg[option].nargs):
                 option = None
                 cnt = 0
             else: 
