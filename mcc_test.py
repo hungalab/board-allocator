@@ -1,11 +1,12 @@
 import networkx as nx
-import pickle
+import time
 
 from allocatorunit import AllocatorUnit, App, Pair, VNode, Flow
+import mcc
 
 #--------------------------------------------------------------
 if __name__ == '__main__':
-    au = AllocatorUnit.load_au_from_file('sample.pickle')
+    au = AllocatorUnit.load('sample.pickle')
     flows = au.flow_dict
 
     print("---matrix---")
@@ -24,12 +25,24 @@ if __name__ == '__main__':
     print("node: {}".format(node_set))
     #print(universe)
 
+    print('====Greedy====')
+    startt = time.time()
     graph = nx.Graph()
     graph.add_nodes_from(node_set)
     graph.add_edges_from(cp_universe)
     coloring = nx.coloring.greedy_color(graph)
     print(coloring)
     print(len(set(coloring.values())))
+    print("elapsed time: {}".format(time.time() - startt))
+    print('====Optimal====')
+    startt = time.time()
+    graph = nx.Graph()
+    graph.add_nodes_from(node_set)
+    graph.add_edges_from(universe)
+    coloring = mcc.mcc(graph)
+    print(coloring)
+    print(len(coloring))
+    print("elapsed time: {}".format(time.time() - startt))
 
     #print("\n--- slot allocation---")
     #GraphSet.set_universe(universe)
