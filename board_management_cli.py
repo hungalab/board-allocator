@@ -80,7 +80,6 @@ class BoardManagementCLI(cmd.Cmd):
     __SHOW_FLOWS_COND_VARS = ['app_id', 'flow_id', 'slot_id']
     # sample code
     arg3_choices = ['alpha', 'beta', 'gamma']
-    
 
     ##-----------------------------------------------------------------------------------
     def __init__(self):
@@ -879,9 +878,8 @@ class BoardManagementCLI(cmd.Cmd):
         return cond
 
     ##-----------------------------------------------------------------------------------
-    @classmethod
-    def _make_lambda(cls, 
-                     args: list[str], 
+    @staticmethod
+    def _make_lambda(args: list[str], 
                      acceptable_variables: Iterable[str]
                      ) -> Callable[..., bool] | None:
         
@@ -889,7 +887,7 @@ class BoardManagementCLI(cmd.Cmd):
             raise ValueError("No argument for lambda function")
 
         try:
-            cond = cls._make_condition(args, acceptable_variables)
+            cond = BoardManagementCLI._make_condition(args, acceptable_variables)
         except SyntaxError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
