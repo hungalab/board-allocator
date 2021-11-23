@@ -89,7 +89,7 @@ class BoardManagementCLI(cmd.Cmd):
         self.fig_thread: Optional[threading.Thread] = None
         self.fig_quit_event = threading.Event()
         self.is_saved = True
-        readline.set_completer_delims(' \t\n`~!@#$%^&*()-=+[{]}\\|;:\'",<>/?')
+        readline.set_completer_delims(' \t\n`~!@#$%^&*()=+[{]}\\|;:\'",<>/?')
         if not os.path.isdir(SAVE_DIR):
             os.mkdir(SAVE_DIR)
         if not os.path.isdir(FIG_DIR):
@@ -757,11 +757,11 @@ class BoardManagementCLI(cmd.Cmd):
             
             if (i == len(args) - 1):
                 if arg.startswith('--'):
-                    return [option_name[2:] + ' ' 
+                    return [option_name + ' ' 
                             for option_name in option_set 
                             if option_name.startswith(args[-1])]
                 elif arg.startswith('-') and cnt == 0:
-                    candidates = [option_name[1:] + ' ' 
+                    candidates = [option_name + ' ' 
                                   for option_name in option_set 
                                   if option_name.startswith(args[-1]) 
                                   and (not option_name.startswith('--'))]
@@ -835,7 +835,7 @@ class BoardManagementCLI(cmd.Cmd):
         is_expr: whether arg is part of an expression or not
         '''
         if is_expr:
-            base_pattern = '\(|\)|\[|\]|\{|\}|\+|\-|\*\*|\*|\/\/|\||\/|\%|\~|\&|\,|\^'\
+            base_pattern = '\(|\)|\[|\]|\{|\}|\+|\*\*|\*|\/\/|\||\/|\%|\~|\&|\,|\^'\
                            '|\=\=|\!\=|\<\=|\>\=|\<\<|\<|\>\>|\>|\`|\!|\@|\#|\$|\\|\;'\
                            '|\:|\'|\"|\?'
             pattern = re.compile(base_pattern)
