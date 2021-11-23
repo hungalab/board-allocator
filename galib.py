@@ -2,6 +2,7 @@ from __future__ import annotations
 import random
 import copy
 import collections
+from re import I
 import numpy
 from functools import partial
 import multiprocessing
@@ -17,6 +18,16 @@ from evaluator import Evaluator
 import oplib
 
 #----------------------------------------------------------------------------------------
+class Fitness(base.Fitness):
+    weights = Evaluator.weights()
+
+#----------------------------------------------------------------------------------------
+class Individual(AllocatorUnit):
+    def __init__(self, seed: AllocatorUnit | bytes | str):
+        super().__init__(None, seed)
+        self.fitness = Fitness()
+
+#----------------------------------------------------------------------------------------
 def mask_generator(sorted_vNode_id_list: list[int]
                    ) -> tuple[dict[int, int], dict[int, int]]:
     l0, l1 = dict(), dict()
@@ -27,8 +38,8 @@ def mask_generator(sorted_vNode_id_list: list[int]
     return l0, l1
 
 #----------------------------------------------------------------------------------------
-def cx_by_mask(parent0: AllocatorUnit, parent1: AllocatorUnit, mask: dict[int, int]
-               ) -> tuple[AllocatorUnit]:
+def cx_by_mask(parent0: Individual, parent1: Individual, mask: dict[int, int]
+               ) -> tuple[Individual]:
     child = copy.deepcopy(parent0)
 
     for vNode_id, bit in mask.items():
@@ -114,8 +125,8 @@ def cx_by_mask(parent0: AllocatorUnit, parent1: AllocatorUnit, mask: dict[int, i
 
 
 #----------------------------------------------------------------------------------------
-def cx_uniform(parent0: AllocatorUnit, parent1: AllocatorUnit, mate_pb: float = 1.0
-               ) -> tuple[AllocatorUnit, AllocatorUnit]:
+def cx_uniform(parent0: Individual, parent1: Individual, mate_pb: float = 1.0
+               ) -> tuple[Individual, Individual]:
     if len(parent0.temp_allocated_rNode_dict) != len(parent1.temp_allocated_rNode_dict):
         raise ValueError("The number of nodes being allocated is "
                          "different for each parent.")
@@ -177,7 +188,7 @@ def cx_uniform(parent0: AllocatorUnit, parent1: AllocatorUnit, mate_pb: float = 
     return child0, child1
 
 #----------------------------------------------------------------------------------------
-def mut_swap(individual: AllocatorUnit, mut_pb: float = 1.0) -> tuple[AllocatorUnit]:
+def mut_swap(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
 
     if not 0 <= mut_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
@@ -201,27 +212,27 @@ def my_multiprocessing_map(pool: multiprocessing.Pool,
     return pool.map(partial(wrapper, func), [elements for elements in zip(*iterable)])
 
 #----------------------------------------------------------------------------------------
-def mate_and_mutate(mate: Callable[[AllocatorUnit, AllocatorUnit, float], 
-                                   tuple[AllocatorUnit, AllocatorUnit]], 
-                    mutate: Callable[[AllocatorUnit, float], tuple[AllocatorUnit]], 
-                    parent0: AllocatorUnit, 
-                    parent1: AllocatorUnit, 
+def mate_and_mutate(mate: Callable[[Individual, Individual, float], 
+                                   tuple[Individual, Individual]], 
+                    mutate: Callable[[Individual, float], tuple[Individual]], 
+                    parent0: Individual, 
+                    parent1: Individual, 
                     mate_pb: float, 
                     mut_pb: float
-                    ) -> tuple[AllocatorUnit, AllocatorUnit]:
+                    ) -> tuple[Individual, Individual]:
     child0, child1 = mate(parent0, parent1, mate_pb)
     child0, = mutate(child0, mut_pb)
     child1, = mutate(child1, mut_pb)
     return child0, child1
 
 #----------------------------------------------------------------------------------------
-def mate_or_mutate(mate: Callable[[AllocatorUnit, AllocatorUnit, float], 
-                                   tuple[AllocatorUnit, AllocatorUnit]], 
-                   mutate: Callable[[AllocatorUnit, float], tuple[AllocatorUnit]], 
-                   parent0: AllocatorUnit, 
-                   parent1: AllocatorUnit, 
+def mate_or_mutate(mate: Callable[[Individual, Individual, float], 
+                                   tuple[Individual, Individual]], 
+                   mutate: Callable[[Individual, float], tuple[Individual]], 
+                   parent0: Individual, 
+                   parent1: Individual, 
                    mate_pb: float
-                   ) -> tuple[AllocatorUnit, AllocatorUnit]:
+                   ) -> tuple[Individual, Individual]:
     if random.random() <= mate_pb:
         child0, child1 = mate(parent0, parent1, 1)
     else:
@@ -235,12 +246,8 @@ class GA:
     def __init__(self, seed: AllocatorUnit | bytes | str):
         self.toolbox = base.Toolbox()
 
-        # instance settings
-        creator.create("Fitness", base.Fitness, weights=Evaluator.weights())
-        creator.create("Individual", AllocatorUnit, fitness=creator.Fitness)
-
         # toolbox settings
-        self.toolbox.register("empty_individual", creator.Individual, None, seed)
+        self.toolbox.register("empty_individual", Individual, seed)
         self.__ind_seed = self.toolbox.empty_individual()
         self.toolbox.register("individual", oplib.generate_initial_solution, self.__ind_seed)
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
