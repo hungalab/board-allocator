@@ -218,7 +218,8 @@ def alns_test(au: AllocatorUnit,
     maximals = [c for c in maximals if len(c) == best_clieque_size]
     best_max_clieque_size_num = len(maximals)
     if enable_log:
-        print("# of slots: {}, clique size: {}, # of max clieques: {}, # of edges: {}".format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
+        print("# of slots: {}, clique size: {}, # of max clieques: {}, # of edges: {}"
+              .format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
 
     while time.time() - start_time < max_execution_time:
         loops += 1
@@ -248,7 +249,8 @@ def alns_test(au: AllocatorUnit,
             best_max_clieque_size_num = max_clieque_size_num
             best_total_hops = total_hops
             if enable_log:
-                print("'# of slots: {}', clique size: {}, # of max clieques: {}, # of edges: {}".format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
+                print("'# of slots: {}', clique size: {}, # of max clieques: {}, # of edges: {}"
+                      .format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
         elif slot_num == best_slot_num and (clieque_size < best_clieque_size):
             best = au
             best_slot_num = slot_num
@@ -256,7 +258,8 @@ def alns_test(au: AllocatorUnit,
             best_max_clieque_size_num = max_clieque_size_num
             best_total_hops = total_hops
             if enable_log:
-                print("# of slots: {}, 'clique size: {}', # of max clieques: {}, # of edges: {}".format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
+                print("# of slots: {}, 'clique size: {}', # of max clieques: {}, # of edges: {}"
+                      .format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
         elif slot_num == best_slot_num and (clieque_size == best_clieque_size) and (max_clieque_size_num < best_max_clieque_size_num):
             best = au
             best_slot_num = slot_num
@@ -264,7 +267,8 @@ def alns_test(au: AllocatorUnit,
             best_max_clieque_size_num = max_clieque_size_num
             best_total_hops = total_hops
             if enable_log:
-                print("# of slots: {}, clique size: {}, '# of max clieques: {}', # of edges: {}".format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
+                print("# of slots: {}, clique size: {}, '# of max clieques: {}', # of edges: {}"
+                      .format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
         elif slot_num == best_slot_num and (clieque_size == best_clieque_size) and (max_clieque_size_num == best_max_clieque_size_num) and (total_hops < best_total_hops):
             best = au
             best_slot_num = slot_num
@@ -272,7 +276,8 @@ def alns_test(au: AllocatorUnit,
             best_max_clieque_size_num = max_clieque_size_num
             best_total_hops = total_hops
             if enable_log:
-                print("# of slots: {}, clique size: {}, # of max clieques: {}, '# of edges: {}'".format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
+                print("# of slots: {}, clique size: {}, # of max clieques: {}, '# of edges: {}'"
+                      .format(best_slot_num, best_clieque_size, best_max_clieque_size_num, best_total_hops))
         
         #loops += 1
         #
