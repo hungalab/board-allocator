@@ -58,7 +58,8 @@ class NSGA2(GA):
         start_time = time.time()
 
         # generate 0th population
-        pop = self.toolbox.population(self.pop_num)
+        #pop = self.toolbox.population(self.pop_num)
+        pop = list(self.toolbox.map(self.toolbox.individual, range(self.pop_num)))
 
         # evaluate the population
         invalid_ind = [ind for ind in pop if not ind.fitness.valid]
@@ -110,8 +111,8 @@ class NSGA2(GA):
             # 2-opt execution
             length = min(process_num, tournament_max_length)
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
-            selected = self.toolbox.map(alns.alns2, selected, 
-                                        [1] * length, [False] * length)
+            selected = self.toolbox.map(alns.alns_test, selected, 
+                                        [60] * length, [False] * length)
             for ind in selected:
                 del ind.fitness.values
             offsprings += selected
@@ -133,7 +134,8 @@ class NSGA2(GA):
             pop = self.toolbox.select(pop, min(self.pop_num, len(pop)))
 
             # insert random individuals
-            rand_pop = self.toolbox.population(20 + (self.pop_num - len(pop)))
+            #rand_pop = self.toolbox.population(20 + (self.pop_num - len(pop)))
+            rand_pop = list(self.toolbox.map(self.toolbox.individual, range(20 + (self.pop_num - len(pop)))))
             fitnesses = self.toolbox.map(self.toolbox.evaluate, rand_pop)
             for ind, fit in zip(rand_pop, fitnesses):
                 ind.fitness.values = fit

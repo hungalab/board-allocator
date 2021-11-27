@@ -249,7 +249,7 @@ class GA:
         # toolbox settings
         self.toolbox.register("empty_individual", Individual, seed)
         self.__ind_seed = self.toolbox.empty_individual()
-        self.toolbox.register("individual", oplib.generate_initial_solution, self.__ind_seed)
+        self.toolbox.register("individual", oplib.initialize_by_assist, self.__ind_seed)
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         self.toolbox.register("evaluate", Evaluator.evaluate)
         self.toolbox.register("mate", cx_uniform)

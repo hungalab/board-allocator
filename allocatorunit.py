@@ -3,6 +3,7 @@ import pickle
 import copy
 import random
 from typing import Optional, Iterable
+from mcc import mcc
 
 import networkx as nx
 
@@ -46,10 +47,12 @@ class Flow:
         self.flow_graph: Optional[nx.DiGraph] = None
     
     ##-----------------------------------------------------------------------------------
-    def make_flow_graph(self):
+    def make_flow_graph(self, None_acceptance: bool = False):
         self.flow_graph = nx.DiGraph()
         for pair in self.pair_list:
             path = pair.path
+            if None_acceptance and path is None:
+                continue
             nx.add_path(self.flow_graph, path)
 
     ##-----------------------------------------------------------------------------------
@@ -345,8 +348,7 @@ class AllocatorUnit:
     ##-----------------------------------------------------------------------------------
     def pair_deallocation(self, pair_id: int):
         # modify the correspond pair and abstract the path
-        pair = self.pair_dict[pair_id]
-        pair.path = None
+        self.pair_dict[pair_id].path = None
 
         # slot_list invalidation
         self.flow_dict_for_slot_allocation_valid = False
@@ -403,7 +405,7 @@ class AllocatorUnit:
                 self.pair_deallocation(recv_pair.pair_id)
 
     ##-----------------------------------------------------------------------------------
-    def set_flow_dict_for_slot_allocation(self):
+    def set_flow_dict_for_slot_allocation(self, None_acceptance: bool = False):
         if not self.flow_dict_for_slot_allocation_valid:
             result: dict[int, Flow] = dict()
             for flow in self.flow_dict.values():
@@ -417,26 +419,25 @@ class AllocatorUnit:
                     result[flow.flow_id] = flow
 
             for flow in result.values():
-                flow.make_flow_graph()
+                flow.make_flow_graph(None_acceptance)
 
             self.flow_dict_for_slot_allocation = result
-            self.flow_dict_for_slot_allocation_valid = True
+            if not None_acceptance:
+                self.flow_dict_for_slot_allocation_valid = True
 
     ##-----------------------------------------------------------------------------------
     def optimal_slot_allocation(self) -> dict[int, int]:
-        from mcc import mcc
-        from graphillion import GraphSet
         self.set_flow_dict_for_slot_allocation()
         universe = [(i, j)
                     for i, fi in self.flow_dict_for_slot_allocation.items()
                     for j, fj in self.flow_dict_for_slot_allocation.items()
                     if i < j and 
                     nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() == 0]
-        if universe == []:
-            return len(self.flow_dict_for_slot_allocation)
         node_set = set(self.flow_dict_for_slot_allocation.keys())
-        GraphSet.set_universe(universe)
-        result = mcc(len(node_set), node_set)
+        graph = nx.Graph()
+        graph.add_nodes_from(node_set)
+        graph.add_edges_from(universe)
+        result = mcc(graph)
         
         existing_flow = {flow_id for id_set in result for flow_id in id_set 
                          if flow_id < 0}

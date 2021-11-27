@@ -12,6 +12,8 @@ import random
 from typing import Optional, Callable
 
 import networkx as nx
+import matplotlib
+matplotlib.use('GTK3Agg')
 import matplotlib.pyplot as plt
 
 # my library
@@ -224,6 +226,8 @@ class BoardAllocator:
             self.au = alns.alns2(self.au, max_execution_time)
         elif method.lower() == 'alns':
             self.au = alns.alns(self.au, max_execution_time)
+        elif method.lower() == 'alns_test':
+            self.au = alns.alns_test(self.au, max_execution_time)
         elif method.lower() == 'nsga2':
             seed = self.au.dumps()
             nsga2 = NSGA2(seed)
@@ -407,7 +411,8 @@ if __name__ == '__main__':
     clean_dir(FIG_DIR)
     actor = BoardAllocator(args.t)
     actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, '2-opt', args.p)
-    actor.au.dump('sample.pickle')
+    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, 'alns_test', args.p)
+    actor.print_result()
+    print("# of slots (optimal): {}".format(actor.au.get_optimal_slot_num()))
     
     print(" ### OVER ### ")
