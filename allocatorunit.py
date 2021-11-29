@@ -170,20 +170,25 @@ class AllocatorUnit:
             self.allocating_pair_list: list[Pair] = list() # the list of pairs in allocating
             ## manage the real node
             self.temp_allocated_rNode_dict: dict[int, int] = dict() # dict: (rNode_id in allocating) |-> vNode_id
-            self.empty_rNode_set: set[int] = set(self.topology.nodes) # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            core_nodes: set[int] = {i for i, module in self.topology.nodes(data="module") 
+                          if module == "core"}
+            self.empty_rNode_set: set[int] = core_nodes # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
             ## shortest path list
-            self.st_path_table: tuple[tuple[tuple[tuple[int]]]] = None # st_path_table[src][dst] = [path0, path1, ...]
+            self.st_path_table: dict[int, dict[int, tuple[tuple[int]]]] = dict() # st_path_table[src][dst] = [path0, path1, ...]
             ## slot management
             self.flow_dict_for_slot_allocation: Optional[dict[int, Flow]] = None
             self.flow_dict_for_slot_allocation_valid: bool = False
 
             # create st-path list
-            node_num = self.topology.number_of_nodes()
             self.st_path_table \
-                = tuple(tuple(tuple(tuple([path[0]] + path) 
-                                    for path in nx.all_shortest_paths(self.topology, src, dst)) 
-                              for dst in range(0, node_num)) 
-                        for src in range(0, node_num))
+            = {src: 
+                  {dst: 
+                      tuple(
+                          tuple(p) if topology.edges[p[-2], p[-1]]["ejection"] == "single"
+                          else tuple(p[0:-1])
+                          for p in nx.all_shortest_paths(self.topology, src, dst))
+                   for dst in core_nodes if dst != src} 
+               for src in core_nodes}
         
         elif (topology is None) and (seed is not None):
             if isinstance(seed, AllocatorUnit):
@@ -293,12 +298,17 @@ class AllocatorUnit:
                            if vNode.rNode_id is not None]
         used_rNodes = {vNode.rNode_id for vNode in assigned_vNodes}
         assert len(assigned_vNodes) == len(used_rNodes)
-        assert self.empty_rNode_set ^ used_rNodes == set(self.topology.nodes)
+        core_nodes = {i for i, module in self.topology.nodes(data="module") 
+                      if module == "core"}
+        assert self.empty_rNode_set ^ used_rNodes == core_nodes
 
         # check pairs
         for pair in self.pair_dict.values():
             src = pair.src_vNode.rNode_id
             dst = pair.dst_vNode.rNode_id
+            if self.topology.has_edge(pair.path[-1], dst) \
+               and (self.topology.edges[pair.path[-1], dst]["ejection"] == "multi"):
+                dst = pair.path[-1]
             assert (pair.path[0] == src) and (pair.path[-1] == dst)
         
         return True
@@ -525,7 +535,8 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def get_avg_greedy_slot_num(self) -> float:
-        rNode_id2slots = {rNode_id: 0 for rNode_id in self.topology.nodes}
+        rNode_id2slots = {n: 0 for n, module in self.topology.nodes(data="module")
+                          if module == "core"}
         coloring = self.greedy_slot_allocation()
         slot_id2flow_id_list \
             = {s: [flow_id for flow_id, slot_id in coloring.items() if slot_id == s] 

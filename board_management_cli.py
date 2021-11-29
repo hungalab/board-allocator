@@ -136,6 +136,8 @@ class BoardManagementCLI(cmd.Cmd):
                             help='topology file')
         parser.add_argument('-f', '--force', action='store_true', 
                             help='Forcibly initialize')
+        parser.add_argument('--multiEjection', action='store_true', 
+                            help='multi-ejection or not')
 
         try:
             args = parser.parse_args(args=line.split())
@@ -156,13 +158,16 @@ class BoardManagementCLI(cmd.Cmd):
                 if ans == 'y':
                     self.do_save()
         
-        self.ba = BoardAllocator(args.topo_file)
+        self.ba = BoardAllocator(args.topo_file, args.multiEjection)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = True
     
     ##-----------------------------------------------------------------------------------
     def complete_init(self, text, line, begidx, endidx):
-        arg_name2Arg = {'topo_file': Arg(1, self._filename_completion)}
+        arg_name2Arg = {'topo_file': Arg(1, self._filename_completion),
+                        '-f': Arg(0),
+                        '--force': Arg(0),
+                        '--multiEjection': Arg(0)}
         return self._argparse_completion(text, line, begidx, endidx, arg_name2Arg)
     
     ##-----------------------------------------------------------------------------------

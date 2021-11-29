@@ -5,6 +5,7 @@ import os
 import os.path
 import shutil
 import copy
+from networkx.algorithms import core
 import numpy as np
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
@@ -43,6 +44,7 @@ def parser():
     parser.add_argument('-ho', help='', default=0, type=float)
     parser.add_argument('--method', help='method to use', default='NSGA2')
     parser.add_argument('-p', help='# of processes to use', default=1, type=int)
+    parser.add_argument('-me', action='store_true')
 
     args = parser.parse_args()
 
@@ -85,7 +87,7 @@ class AppVirtualizer:
 
 #----------------------------------------------------------------------------------------
 class BoardAllocator:
-    def __init__(self, topologyFile: str):
+    def __init__(self, topologyFile: str, multi_ejection: bool = True):
         # define variable
         ## Allocator Unit
         self.au: Optional[AllocatorUnit] = None
@@ -104,26 +106,57 @@ class BoardAllocator:
         ## color pool for drawing
         self.color_pool = ['red', 'cyan', 'yellow', 'orange', 'green']
 
+        ## ejection type
+        if multi_ejection:
+            self.ejection = 'multi'
+        else:
+            self.ejection = 'single'
+
         # make topology
         topology = nx.DiGraph()
 
         # read topology file
         topo_tmp = np.loadtxt(topologyFile, dtype='int').tolist()
 
-        # add nodes
-        list_tmp = list(r[0] for r in topo_tmp) + list(r[2] for r in topo_tmp)
-        list_tmp = list(set(list_tmp))
-        verticesNum = len(list_tmp) # number of nodes
-        topology.add_nodes_from(range(verticesNum))
+        # add core nodes
+        core_nodes = list(set([r[0] for r in topo_tmp] + [r[2] for r in topo_tmp]))
+        core_node_num = len(core_nodes) # number of nodes
+        topology.add_nodes_from([(i, {"module": "core"}) for i in range(core_node_num)])
 
-        self.node_index2label = {i: label for i, label in enumerate(list_tmp)}
+        # label to assigned index
+        self.node_index2label = {i: label for i, label in enumerate(core_nodes)}
         self.node_label2index = {value: key 
                                  for key, value in self.node_index2label.items()}
+        
+        # add switch nodes and edges between cores and switches
+        def connecting_swicth(core_node: int):
+            assert core_node < core_node_num
+            return core_node_num + core_node
+        topology.add_nodes_from([(i, {"module": "switch", 
+                                      "adj2input_port": dict(), 
+                                      "adj2output_port": dict()}) 
+                                 for i in range(core_node_num, 2 * core_node_num)])
+        for i in self.node_index2label.keys():
+            topology.add_edge(i, connecting_swicth(i))
+            topology.add_edge(connecting_swicth(i), i, ejection=self.ejection)
 
         # make bi-directional edges
-        for e in topo_tmp:
-            topology.add_edge(self.node_label2index[e[0]], self.node_label2index[e[2]])
-            topology.add_edge(self.node_label2index[e[2]], self.node_label2index[e[0]])
+        for core0, port0, core1, port1 in topo_tmp:
+            sw0 = connecting_swicth(self.node_label2index[core0])
+            sw1 = connecting_swicth(self.node_label2index[core1])
+            topology.add_edge(sw0, sw1)
+            topology.add_edge(sw1, sw0)
+            topology.nodes[sw0]["adj2output_port"][sw1] = port0
+            topology.nodes[sw1]["adj2input_port"][sw0] = port1
+            topology.nodes[sw1]["adj2output_port"][sw0] = port1
+            topology.nodes[sw0]["adj2input_port"][sw1] = port0
+        
+        ## settings for position
+        #pos = {i: (-((i % core_node_num) // 4) * 4 - (i // core_node_num), ((i % core_node_num) % 4) * 4 + (i // core_node_num)) for i in range(2*core_node_num)}
+        #labels = {i: self.node_index2label[i % core_node_num] for i in range(2*core_node_num)}
+        # draw
+        #nx.draw_networkx(topology, pos, labels=labels)
+        #plt.show()
         
         # make allocatorunit
         self.au = AllocatorUnit(topology)
@@ -391,12 +424,17 @@ class BoardAllocator:
                                  path: str 
                                   = os.path.join(FIG_DIR, (default_filename()+'.png'))):
         ## settings for position
-        pos = {i: (-(i // 4), i % 4) for i in self.node_index2label.keys()}
+        core_node_num = len({i for i, module in self.au.topology.nodes(data="module") 
+                             if module == "core"})
+        pos = {i: (-((i % core_node_num) // 4) * 4 - (i // core_node_num), 
+                   ((i % core_node_num) % 4) * 4 + (i // core_node_num)) 
+               for i in self.au.topology.nodes}
+        #labels = {i: self.node_index2label[i % core_node_num] for i in self.au.topology.nodes}
         ## settings for color
         used_nodes_for_app = {app.app_id: [vNode.rNode_id for vNode in app.vNode_list 
                                            if vNode.rNode_id is not None] 
                               for app in self.au.app_dict.values()}
-        node_color = ['gainsboro' for i in self.node_index2label.keys()]
+        node_color = ['gainsboro' for i in self.au.topology.nodes]
         for app_id, used_nodes in used_nodes_for_app.items():
             for node in used_nodes:
                 node_color[node] = self.app_id2vitrualizer[app_id].color
@@ -409,10 +447,6 @@ class BoardAllocator:
 if __name__ == '__main__':
     args = parser()
     clean_dir(FIG_DIR)
-    actor = BoardAllocator(args.t)
-    actor.load_app(args.c)
-    actor.run_optimization(args.s + 60 * args.m + 3600 * args.ho, 'alns_test', args.p)
-    actor.print_result()
-    print("# of slots (optimal): {}".format(actor.au.get_optimal_slot_num()))
+    actor = BoardAllocator(args.t, args.me)
     
     print(" ### OVER ### ")
