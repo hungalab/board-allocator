@@ -9,7 +9,7 @@ from deap import tools
 #import networkx as nx
 
 # my library
-from galib import GA, my_multiprocessing_map, mate_or_mutate
+from galib import GA, Individual, my_multiprocessing_map, mate_or_mutate
 from evaluator import Evaluator
 import alns
 from allocatorunit import AllocatorUnit
@@ -49,16 +49,13 @@ class NSGA2(GA):
 
         hall_of_fame = tools.ParetoFront()
         gen = 0
-        mate_pb_array = [self.mate_pb] * (self.offspring_size //2)
-        mut_pb_array = [self.mutation_pb] * self.offspring_size
-        mate_array = [self.toolbox.mate] * (self.offspring_size // 2)
-        mutate_array = [self.toolbox.mutate] * (self.offspring_size // 2)
 
         # start timer
         start_time = time.time()
 
         # generate 0th population
         #pop = self.toolbox.population(self.pop_num)
+        pop: list[Individual] 
         pop = list(self.toolbox.map(self.toolbox.individual, range(self.pop_num)))
 
         # evaluate the population
@@ -99,7 +96,7 @@ class NSGA2(GA):
             #offsprings = list(itertools.chain.from_iterable(
             #              map(mate_or_mutate, mate_array, mutate_array, 
             #                  parents[::2], parents[1::2], mate_pb_array)))
-            
+            offsprings: list[Individual]
             offsprings = list(itertools.chain.from_iterable(
                           map(self.toolbox.mate, parents[::2], parents[1::2], 
                               [1] * (len(parents) // 2))))
@@ -110,6 +107,7 @@ class NSGA2(GA):
             
             # 2-opt execution
             length = min(process_num, tournament_max_length)
+            selected: list[Individual]
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
             selected = self.toolbox.map(alns.alns_test, selected, 
                                         [60] * length, [False] * length)

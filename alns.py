@@ -59,6 +59,7 @@ def alns(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
@@ -117,6 +118,7 @@ def alns_only_pairs(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
@@ -176,6 +178,7 @@ def alns2(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
@@ -310,6 +313,7 @@ def alns_test(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
+        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
             print(elm)
