@@ -44,16 +44,14 @@ def cx_by_mask(parent0: Individual, parent1: Individual, mask: dict[int, int]
 
     # node inheritance
     for vNode_id, bit in mask.items():
-        vNode = child.vNode_dict[vNode_id]
-
         # inherit from parent1
         if bit == 1:
             # update rNode_id
-            vNode.rNode_id = parent1.vNode_dict[vNode_id].rNode_id
+            child.node_allocation(vNode_id, parent1.vNode_dict[vNode_id].rNode_id, False)
 
         # inherit nothing
         elif bit != 0:
-            vNode.rNode_id = None
+            child.node_deallocation(vNode_id, False)
 
     # path inheritance
     for pair_id, pair in {pair.pair_id: pair

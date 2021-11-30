@@ -228,6 +228,11 @@ class AllocatorUnit:
 
     ##-----------------------------------------------------------------------------------
     @property
+    def switch_nodes(self) -> set[int]:
+        return set(self.topology.nodes) - self.core_nodes
+
+    ##-----------------------------------------------------------------------------------
+    @property
     def allocating_vNode_list(self) -> list[VNode]:
         return [vNode for vNode in self.vNode_dict.values() if vNode.allocating]
 
@@ -364,20 +369,24 @@ class AllocatorUnit:
         self.flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
-    def node_allocation(self, vNode_id: int, rNode_id: int):
+    def node_allocation(self, 
+                        vNode_id: int, 
+                        rNode_id: int, 
+                        with_pair_allocation: bool = True):
         # temporary node allocation
         vNode = self.vNode_dict[vNode_id]
         vNode.rNode_id = rNode_id
 
-        # temporary send-path allocation
-        for send_pair in vNode.send_pair_list:
-            if send_pair.dst_vNode.rNode_id is not None:
-                self.random_pair_allocation(send_pair.pair_id)
+        if with_pair_allocation:
+            # temporary send-path allocation
+            for send_pair in vNode.send_pair_list:
+                if send_pair.dst_vNode.rNode_id is not None:
+                    self.random_pair_allocation(send_pair.pair_id)
 
-        # temporary recv-path allocation
-        for recv_pair in vNode.recv_pair_list:
-            if recv_pair.src_vNode.rNode_id is not None:
-                self.random_pair_allocation(recv_pair.pair_id)
+            # temporary recv-path allocation
+            for recv_pair in vNode.recv_pair_list:
+                if recv_pair.src_vNode.rNode_id is not None:
+                    self.random_pair_allocation(recv_pair.pair_id)
         
         # slot_list invalidation
         self.flow_dict_for_slot_allocation_valid = False
@@ -389,20 +398,18 @@ class AllocatorUnit:
         self.node_allocation(vNode_id, map_rNode_id)
 
     ##-----------------------------------------------------------------------------------
-    def node_deallocation(self, vNode_id: int):
+    def node_deallocation(self, vNode_id: int, with_pair_deallocation: bool = True):
         # modify the correspond vNode and abstract the rNode_id
         vNode = self.vNode_dict[vNode_id]
         vNode.rNode_id = None
 
-        # send-path deallocation
-        for send_pair in vNode.send_pair_list:
-            if send_pair.path is not None:
-                self.pair_deallocation(send_pair.pair_id)
-
-        # recv-path deallocation
-        for recv_pair in vNode.recv_pair_list:
-            if recv_pair.path is not None:
-                self.pair_deallocation(recv_pair.pair_id)
+        if with_pair_deallocation:
+            # pair deallocation
+            for pair in vNode.pair_list:
+                if pair.path is not None:
+                    self.pair_deallocation(pair.pair_id)
+        
+        self.flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def set_flow_dict_for_slot_allocation(self, None_acceptance: bool = False):

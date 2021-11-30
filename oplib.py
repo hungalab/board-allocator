@@ -34,7 +34,7 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
 
     # node allocation
     for vNode in au.allocating_vNode_list:
-        vNode.rNode_id = random.choice(list(au.empty_rNode_set))
+        au.node_allocation(vNode.vNode_id, random.choice(list(au.empty_rNode_set)), False)
     
     # make a list of pairs with their flow_id
     pairs = [(pair, flow.flow_id) 
