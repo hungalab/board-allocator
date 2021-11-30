@@ -42,68 +42,34 @@ def cx_by_mask(parent0: Individual, parent1: Individual, mask: dict[int, int]
                ) -> tuple[Individual]:
     child = copy.deepcopy(parent0)
 
+    # node inheritance
     for vNode_id, bit in mask.items():
         vNode = child.vNode_dict[vNode_id]
-        if bit == 0:
-            # deallocate pairs whose dst or src is changed
-            for pair in vNode.send_pair_list:
-                if mask[pair.dst_vNode.vNode_id] != bit:
-                    child.pair_deallocation(pair.pair_id)
-            
-            for pair in vNode.recv_pair_list:
-                if mask[pair.src_vNode.vNode_id] != bit:
-                    child.pair_deallocation(pair.pair_id)
-        
-        elif bit == 1:
-            old_rNode_id = vNode.rNode_id
-            new_rNode_id = parent1.vNode_dict[vNode_id].rNode_id
-            # node deallocation (update the list and dict)
-            if old_rNode_id is not None:
-                child.temp_allocated_rNode_dict.pop(old_rNode_id)
-                child.empty_rNode_set.add(old_rNode_id)
-            # temporary node allocation
-            try:
-                child.empty_rNode_set.remove(new_rNode_id)
-            except KeyError:
-                # when new_rNode_id has already been secured, release new_rNode_id
-                target_vNode_id = child.temp_allocated_rNode_dict[new_rNode_id]
-                child.vNode_dict[target_vNode_id].rNode_id = None
-            child.temp_allocated_rNode_dict[new_rNode_id] = vNode.vNode_id
+
+        # inherit from parent1
+        if bit == 1:
             # update rNode_id
-            vNode.rNode_id = new_rNode_id
+            vNode.rNode_id = parent1.vNode_dict[vNode_id].rNode_id
 
-            # update pairs
-            for pair in vNode.send_pair_list:
-                if mask[pair.dst_vNode.vNode_id] != bit:
-                    child.pair_deallocation(pair.pair_id)
-                else:
-                    path = parent1.pair_dict[pair.pair_id].path
-                    child.pair_allocation(pair.pair_id, path)
-            
-            for pair in vNode.recv_pair_list:
-                if mask[pair.src_vNode.vNode_id] != bit:
-                    child.pair_deallocation(pair.pair_id)
-                else:
-                    path = parent1.pair_dict[pair.pair_id].path
-                    child.pair_allocation(pair.pair_id, path)
-        
-        else:
-            old_rNode_id = vNode.rNode_id
+        # inherit nothing
+        elif bit != 0:
             vNode.rNode_id = None
-            # node deallocation (update the list and dict)
-            if old_rNode_id is not None:
-                child.temp_allocated_rNode_dict.pop(old_rNode_id)
-                child.empty_rNode_set.add(old_rNode_id)
 
-            # send-path deallocation
-            for send_pair in vNode.send_pair_list:
-                if send_pair.path is not None:
-                    child.pair_deallocation(send_pair.pair_id)
+    # path inheritance
+    for pair_id, pair in {pair.pair_id: pair
+                          for vNode_id in mask.keys() 
+                          for pair in child.vNode_dict[vNode_id].pair_list}.items():
+        src_bit = mask[pair.src_vNode.vNode_id]
+        dst_bit = mask[pair.dst_vNode.vNode_id]
 
-            # recv-path deallocation
-            for recv_pair in vNode.recv_pair_list:
-                if recv_pair.path is not None:
-                    child.pair_deallocation(recv_pair.pair_id)
+        # inherit from parent1
+        if src_bit == dst_bit == 1:
+            child.pair_allocation(pair_id, parent1.pair_dict[pair_id].path)
+        
+        # inherit nothing
+        elif not (src_bit == dst_bit == 0):
+            child.pair_deallocation(pair_id)
+            
 
     # allocate unallocated vNodes
     for vNode in child.allocating_vNode_list:
@@ -142,10 +108,11 @@ def cx_uniform(parent0: Individual, parent1: Individual, mate_pb: float = 1.0
         # make masks
         sorted_vNode_id_list = sorted(parent0.temp_allocated_rNode_dict.values())
         mask0, mask1 = mask_generator(sorted_vNode_id_list)
+        parent = [parent0, parent1]
+        invalid_value = 2 # Not 0 or 1
 
-        ## check the duplication
-        next_child0_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit
-                                            else parent0.vNode_dict[vNode_id].rNode_id 
+        # check the duplication
+        next_child0_rNode_dict = {vNode_id: parent[bit].vNode_dict[vNode_id].rNode_id
                                   for vNode_id, bit in mask0.items()}
         counter = collections.Counter(list(next_child0_rNode_dict.values()))
         for key, count in counter.items():
@@ -154,14 +121,13 @@ def cx_uniform(parent0: Individual, parent1: Individual, mate_pb: float = 1.0
                 current = 0
                 for vNode_id, rNode_id in next_child0_rNode_dict.items():
                     if rNode_id == key and current != selected:
-                        mask0[vNode_id] = 2
+                        mask0[vNode_id] = invalid_value
                         current += 1
                         break
                     elif rNode_id == key and current == selected:
                         current += 1
 
-        next_child1_rNode_dict = {vNode_id: parent1.vNode_dict[vNode_id].rNode_id if bit
-                                            else parent0.vNode_dict[vNode_id].rNode_id
+        next_child1_rNode_dict = {vNode_id: parent[bit].vNode_dict[vNode_id].rNode_id
                                   for vNode_id, bit in mask1.items()}
         counter = collections.Counter(list(next_child1_rNode_dict.values()))
         for key, count in counter.items():
@@ -171,7 +137,7 @@ def cx_uniform(parent0: Individual, parent1: Individual, mate_pb: float = 1.0
                 current = 0
                 for vNode_id, rNode_id in next_child1_rNode_dict.items():
                     if rNode_id == key and current != selected:
-                        mask1[vNode_id] = 2
+                        mask1[vNode_id] = invalid_value
                         current += 1
                         break
                     elif rNode_id == key and current == selected:

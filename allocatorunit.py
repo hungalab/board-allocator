@@ -25,18 +25,20 @@ class Pair:
         self.src_vNode: Optional[VNode] = None
         self.dst_vNode: Optional[VNode] = None
         self.path: Optional[tuple[int]] = None # using path list
+        self.allocating: bool = True
     
     ##-----------------------------------------------------------------------------------
     def _hasher(self) -> int:
         '''
         This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
         '''
-        return hash((self.pair_id, self.src, self.dst, self.path))
+        return hash((self.pair_id, self.src, self.dst, self.path, self.allocating))
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: Pair) -> bool:
         return (self.pair_id == other.pair_id) and (self.src == other.src) \
-               and (self.dst == other.dst) and (self.path == other.path)
+               and (self.dst == other.dst) and (self.path == other.path) \
+               and (self.allocating == other.allocating)
 
 #----------------------------------------------------------------------------------------
 class Flow:
@@ -89,17 +91,24 @@ class VNode:
         self.send_pair_list = send_pair_list # list of pair to be sent by this VNode
         self.recv_pair_list = recv_pair_list # list of pair to be recieved by this VNode
         self.rNode_id: Optional[int] = None # physical node id: None means unallocated
+        self.allocating: bool = True
     
+    ##-----------------------------------------------------------------------------------
+    @property
+    def pair_list(self) -> list[Pair]:
+        return self.send_pair_list + self.recv_pair_list
+
     ##-----------------------------------------------------------------------------------
     def _hasher(self) -> int:
         '''
         This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
         '''
-        return hash((self.vNode_id, self.rNode_id))
+        return hash((self.vNode_id, self.rNode_id, self.allocating))
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: VNode) -> bool:
-        return (self.vNode_id == other.vNode_id) and (self.rNode_id == other.rNode_id)
+        return (self.vNode_id == other.vNode_id) and (self.rNode_id == other.rNode_id) \
+               and (self.allocating == other.allocating)
 
 #----------------------------------------------------------------------------------------
 class App:
@@ -165,14 +174,9 @@ class AllocatorUnit:
             self.flow_dict: dict[int, Flow] = dict()
             self.pair_dict: dict[int, Pair] = dict()
             self.app_dict: dict[int, App] = dict()
-            ## allocating object lists
-            self.allocating_vNode_list: list[VNode] = list() # the list of VNodes in allocating
-            self.allocating_pair_list: list[Pair] = list() # the list of pairs in allocating
-            ## manage the real node
-            self.temp_allocated_rNode_dict: dict[int, int] = dict() # dict: (rNode_id in allocating) |-> vNode_id
-            core_nodes: set[int] = {i for i, module in self.topology.nodes(data="module") 
-                          if module == "core"}
-            self.empty_rNode_set: set[int] = core_nodes # the set of rNodes that is not allocated (not including temp_allocated_rNode_dict)
+            ## core nodes
+            self.core_nodes: set[int] = {i for i, module in topology.nodes(data="module")
+                                         if module == "core"}
             ## shortest path list
             self.st_path_table: dict[int, dict[int, tuple[tuple[int]]]] = dict() # st_path_table[src][dst] = [path0, path1, ...]
             ## slot management
@@ -186,9 +190,9 @@ class AllocatorUnit:
                       tuple(
                           tuple(p[0:-1]) if topology.edges[p[-2], p[-1]]["multi_ejection"]
                           else tuple(p)
-                          for p in nx.all_shortest_paths(self.topology, src, dst))
-                   for dst in core_nodes if dst != src} 
-               for src in core_nodes}
+                          for p in nx.all_shortest_paths(topology, src, dst))
+                   for dst in self.core_nodes if dst != src} 
+               for src in self.core_nodes}
         
         elif (topology is None) and (seed is not None):
             if isinstance(seed, AllocatorUnit):
@@ -209,12 +213,8 @@ class AllocatorUnit:
             self.flow_dict = base.flow_dict
             self.pair_dict = base.pair_dict
             self.app_dict = base.app_dict
-            ## allocating object lists
-            self.allocating_vNode_list = base.allocating_vNode_list
-            self.allocating_pair_list = base.allocating_pair_list
-            ## manage the real node
-            self.temp_allocated_rNode_dict = base.temp_allocated_rNode_dict
-            self.empty_rNode_set = base.empty_rNode_set
+            ## core nodes
+            self.core_nodes = base.core_nodes
             ## shortest path list
             self.st_path_table = base.st_path_table
             ## slot management
@@ -225,6 +225,30 @@ class AllocatorUnit:
             raise AllocatorUnitInitializationError(
             "Only one of the arguments of the AllocatorUnit constructor"
             "should be specified, and the other should be None.")
+
+    ##-----------------------------------------------------------------------------------
+    @property
+    def allocating_vNode_list(self) -> list[VNode]:
+        return [vNode for vNode in self.vNode_dict.values() if vNode.allocating]
+
+    ##-----------------------------------------------------------------------------------
+    @property
+    def allocating_pair_list(self) -> list[Pair]:
+        return [pair for pair in self.pair_dict.values() if pair.allocating]
+    
+    ##-----------------------------------------------------------------------------------
+    @property
+    def temp_allocated_rNode_dict(self) -> dict[int, int]:
+        return {vNode.rNode_id: vNode.vNode_id
+                for vNode in self.vNode_dict.values()
+                if vNode.allocating and vNode.rNode_id is not None}
+
+    ##-----------------------------------------------------------------------------------
+    @property
+    def empty_rNode_set(self) -> set[int]:
+        used = {vNode.rNode_id 
+                for vNode in self.vNode_dict.values() if vNode.rNode_id is not None}
+        return self.core_nodes - used
 
     ##-----------------------------------------------------------------------------------
     def add_app(self, app: App) -> bool:
@@ -238,7 +262,6 @@ class AllocatorUnit:
         # add vNodes
         for vNode in app.vNode_list:
             self.vNode_dict[vNode.vNode_id] = vNode
-            self.allocating_vNode_list.append(vNode)
         
         # add flows
         for flow in app.flow_list:
@@ -247,7 +270,6 @@ class AllocatorUnit:
         # add pairs
         for pair in app.pair_list:
             self.pair_dict[pair.pair_id] = pair
-            self.allocating_pair_list.append(pair)
         
         return True
     
@@ -260,15 +282,11 @@ class AllocatorUnit:
         remove_vNode_id_set = {vNode.vNode_id for vNode in app.vNode_list}
         self.vNode_dict = {vNode_id: vNode for vNode_id, vNode in self.vNode_dict.items()
                            if vNode_id not in remove_vNode_id_set}
-        self.allocating_vNode_list = [vNode for vNode in self.allocating_vNode_list
-                                      if vNode.vNode_id not in remove_vNode_id_set]
         
         # remove vNodes
         remove_pair_id_set = {pair.pair_id for pair in app.pair_list}
         self.pair_dict = {pair_id: pair for pair_id, pair in self.pair_dict.items()
                           if pair_id not in remove_pair_id_set}
-        self.allocating_pair_list = [pair for pair in self.allocating_pair_list
-                                     if pair.pair_id not in remove_pair_id_set]
         
         # remove flows
         remove_flow_id_set = {flow.flow_id for flow in app.flow_list}
@@ -276,33 +294,14 @@ class AllocatorUnit:
                           if flow_id not in remove_flow_id_set}
         self.flow_dict_for_slot_allocation_valid = False
 
-        # add released rNode and update temp_allocated_rNode_dict
-        released_rNodes = {vNode.rNode_id for vNode in app.vNode_list 
-                           if vNode.rNode_id is not None}
-        released_temp_rNodes \
-            = {rNode_id for rNode_id, vNode_id in self.temp_allocated_rNode_dict.items() 
-               if vNode_id in remove_vNode_id_set}
-
-        assert released_rNodes & released_temp_rNodes == set()
-        released_rNodes |= released_temp_rNodes
-        self.empty_rNode_set |= released_rNodes
-        self.temp_allocated_rNode_dict \
-            = {rNode_id: vNode_id 
-               for rNode_id, vNode_id in self.temp_allocated_rNode_dict.items() 
-               if rNode_id not in released_rNodes}
-
     ##-----------------------------------------------------------------------------------
     def consistenty_checker(self):
-        # check nodes
-        assigned_vNodes = [vNode for vNode in self.vNode_dict.values() 
+        # check for node duplication
+        assigned_rNodes = [vNode.rNode_id for vNode in self.vNode_dict.values() 
                            if vNode.rNode_id is not None]
-        used_rNodes = {vNode.rNode_id for vNode in assigned_vNodes}
-        assert len(assigned_vNodes) == len(used_rNodes)
-        core_nodes = {i for i, module in self.topology.nodes(data="module") 
-                      if module == "core"}
-        assert self.empty_rNode_set ^ used_rNodes == core_nodes
+        assert sorted(assigned_rNodes) == sorted(set(assigned_rNodes))
 
-        # check pairs
+        # check for path consistency
         for pair in self.pair_dict.values():
             src = pair.src_vNode.rNode_id
             dst = pair.dst_vNode.rNode_id
@@ -315,17 +314,18 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def apply(self):
-        assert len(self.allocating_vNode_list) == len(self.temp_allocated_rNode_dict)
+        # check for allocator consistency
         self.consistenty_checker()
 
-        # flush allocating lists
-        self.allocating_vNode_list = list()
-        self.allocating_pair_list = list()
+        # disable the allocating status of vNodes
+        for vNode in self.vNode_dict.values():
+            if vNode.rNode_id is not None:
+                vNode.allocating = False
 
-        # apply rNode to corresponding vNode and flush temp_allocated_rNode_dict
-        for rNode_id, vNode_id in self.temp_allocated_rNode_dict.items():
-            assert self.vNode_dict[vNode_id].rNode_id == rNode_id
-        self.temp_allocated_rNode_dict = dict()
+        # disable the allocating status of pairs
+        for pair in self.pair_dict.values():
+            if pair.path is not None:
+                pair.allocating = False
 
         # apply slots and invalidate flow_dict_for_slot_allocation_valid
         flow_id2slot_id = self.greedy_slot_allocation()
@@ -365,14 +365,9 @@ class AllocatorUnit:
 
     ##-----------------------------------------------------------------------------------
     def node_allocation(self, vNode_id: int, rNode_id: int):
-        # pick up an rNove
-        map_rNode_id = rNode_id
-        self.empty_rNode_set.remove(map_rNode_id)
-
         # temporary node allocation
         vNode = self.vNode_dict[vNode_id]
-        self.temp_allocated_rNode_dict[map_rNode_id] = vNode.vNode_id
-        vNode.rNode_id = map_rNode_id
+        vNode.rNode_id = rNode_id
 
         # temporary send-path allocation
         for send_pair in vNode.send_pair_list:
@@ -397,12 +392,7 @@ class AllocatorUnit:
     def node_deallocation(self, vNode_id: int):
         # modify the correspond vNode and abstract the rNode_id
         vNode = self.vNode_dict[vNode_id]
-        rNode_id = vNode.rNode_id
         vNode.rNode_id = None
-
-        # node deallocation (update the list and dict)
-        self.temp_allocated_rNode_dict.pop(rNode_id)
-        self.empty_rNode_set.add(rNode_id)
 
         # send-path deallocation
         for send_pair in vNode.send_pair_list:
@@ -535,8 +525,7 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def get_avg_greedy_slot_num(self) -> float:
-        rNode_id2slots = {n: 0 for n, module in self.topology.nodes(data="module")
-                          if module == "core"}
+        rNode_id2slots = {n: 0 for n in self.core_nodes}
         coloring = self.greedy_slot_allocation()
         slot_id2flow_id_list \
             = {s: [flow_id for flow_id, slot_id in coloring.items() if slot_id == s] 
