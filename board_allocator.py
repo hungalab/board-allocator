@@ -329,9 +329,10 @@ class BoardAllocator:
     ##-----------------------------------------------------------------------------------
     def select_from_hof(self, hof: tools.HallOfFame, index: Optional[int] = None):
         if index is None:
-            pass ## select index
+            index = 0
 
-        return hof[index]
+        self.au = hof[index]
+        self.au.apply()
 
     ##-----------------------------------------------------------------------------------
     def show_topology_file(self):

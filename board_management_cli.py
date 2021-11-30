@@ -405,7 +405,7 @@ class BoardManagementCLI(cmd.Cmd):
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
-        ## self.ba.select_from_hof(hof)
+        self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
     
@@ -450,7 +450,7 @@ class BoardManagementCLI(cmd.Cmd):
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
-        ## self.ba.select_from_hof(hof)
+        self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
     
@@ -495,7 +495,7 @@ class BoardManagementCLI(cmd.Cmd):
         except ValueError as e:
             for s in traceback.format_exception_only(type(e), e):
                 print(s.rstrip('\n'))
-        ## self.ba.select_from_hof(hof)
+        self.ba.select_from_hof(hof)
         self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
         self.is_saved = False
     
