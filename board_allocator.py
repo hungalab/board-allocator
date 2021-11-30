@@ -68,7 +68,7 @@ def now():
     return datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S (%Z)')
 
 def default_filename():
-    return datetime.now(JST).strftime('%Y-%m-%d-T%H%M-%S%f')
+    return datetime.now(JST).strftime('%Y-%m-%d-%H%M-%S%f')
 
 #----------------------------------------------------------------------------------------
 class AppVirtualizer:
@@ -87,7 +87,7 @@ class AppVirtualizer:
 
 #----------------------------------------------------------------------------------------
 class BoardAllocator:
-    def __init__(self, topologyFile: str, multi_ejection: bool = True):
+    def __init__(self, topologyFile: str, multi_ejection: bool = False):
         # define variable
         ## Allocator Unit
         self.au: Optional[AllocatorUnit] = None
@@ -105,12 +105,6 @@ class BoardAllocator:
         self.__app_id = 0 # the generator of app_id: it is used only in generate_app_id() method
         ## color pool for drawing
         self.color_pool = ['red', 'cyan', 'yellow', 'orange', 'green']
-
-        ## ejection type
-        if multi_ejection:
-            self.ejection = 'multi'
-        else:
-            self.ejection = 'single'
 
         # make topology
         topology = nx.DiGraph()
@@ -138,7 +132,7 @@ class BoardAllocator:
                                  for i in range(core_node_num, 2 * core_node_num)])
         for i in self.node_index2label.keys():
             topology.add_edge(i, connecting_swicth(i))
-            topology.add_edge(connecting_swicth(i), i, ejection=self.ejection)
+            topology.add_edge(connecting_swicth(i), i, multi_ejection=multi_ejection)
 
         # make bi-directional edges
         for core0, port0, core1, port1 in topo_tmp:

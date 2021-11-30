@@ -184,8 +184,8 @@ class AllocatorUnit:
             = {src: 
                   {dst: 
                       tuple(
-                          tuple(p) if topology.edges[p[-2], p[-1]]["ejection"] == "single"
-                          else tuple(p[0:-1])
+                          tuple(p[0:-1]) if topology.edges[p[-2], p[-1]]["multi_ejection"]
+                          else tuple(p)
                           for p in nx.all_shortest_paths(self.topology, src, dst))
                    for dst in core_nodes if dst != src} 
                for src in core_nodes}
@@ -307,7 +307,7 @@ class AllocatorUnit:
             src = pair.src_vNode.rNode_id
             dst = pair.dst_vNode.rNode_id
             if self.topology.has_edge(pair.path[-1], dst) \
-               and (self.topology.edges[pair.path[-1], dst]["ejection"] == "multi"):
+               and (self.topology.edges[pair.path[-1], dst]["multi_ejection"]):
                 dst = pair.path[-1]
             assert (pair.path[0] == src) and (pair.path[-1] == dst)
         
