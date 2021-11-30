@@ -536,21 +536,21 @@ class AllocatorUnit:
             flow_id_list = slot_id2flow_id_list[slot_id]
             for flow_id in flow_id_list:
                 flow_graph = self.flow_dict_for_slot_allocation[flow_id].flow_graph
-                nodes_in_flow = set(flow_graph.nodes)
+                switches_in_flow = set(flow_graph.nodes) - self.core_nodes
                 for s in [s for s in desc_slot_id_list if s >= slot_id]:
                     if s > slot_id:
-                        rNodes_whose_slots_are_s \
-                            = {rNode_id for rNode_id, slots in rNode_id2slots.items()
+                        switches_whose_slots_are_s \
+                            = {switch for switch, slots in switch2slots.items()
                                if slots == s + 1}
-                        if nodes_in_flow & rNodes_whose_slots_are_s != set():
-                            for node in nodes_in_flow:
-                                rNode_id2slots[node] = s + 1
+                        if switches_in_flow & switches_whose_slots_are_s != set():
+                            for node in switches_in_flow:
+                                switch2slots[node] = s + 1
                             break
                     else:
-                        for node in nodes_in_flow:
-                            rNode_id2slots[node] = s + 1
+                        for node in switches_in_flow:
+                            switch2slots[node] = s + 1
         
-        return sum(rNode_id2slots.values()) / len(rNode_id2slots)
+        return sum(switch2slots.values()) / len(switch2slots)
     
     ##-----------------------------------------------------------------------------------
     def get_max_greedy_slot_num(self) -> int:
@@ -564,7 +564,8 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def board_num_to_be_routed(self) -> int:
-        return len(set().union(*[pair.path for pair in self.pair_dict.values()]))
+        routed_nodes = set().union(*[pair.path for pair in self.pair_dict.values()])
+        return len(routed_nodes - self.core_nodes)
 
     ##-----------------------------------------------------------------------------------
     def average_hops(self) -> float:
