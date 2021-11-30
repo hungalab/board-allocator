@@ -525,7 +525,7 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def get_avg_greedy_slot_num(self) -> float:
-        rNode_id2slots = {n: 0 for n in self.core_nodes}
+        switch2slots = {n: 0 for n in self.switch_nodes}
         coloring = self.greedy_slot_allocation()
         slot_id2flow_id_list \
             = {s: [flow_id for flow_id, slot_id in coloring.items() if slot_id == s] 
