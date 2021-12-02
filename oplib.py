@@ -28,9 +28,7 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
     au = copy.deepcopy(au)
     
     # make temporary flow dict
-    au.flow_dict_for_slot_allocation_valid = False
-    au.set_flow_dict_for_slot_allocation(None_acceptance=True)
-    fd = au.flow_dict_for_slot_allocation.copy()
+    fd = au.get_flow_dict_for_slot_allocation()
 
     # node allocation
     for vNode in au.allocating_vNode_list:
@@ -178,8 +176,7 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
     au = copy.deepcopy(au)
 
     # find maximal cliques (size >= 2)
-    au.set_flow_dict_for_slot_allocation()
-    fd = au.flow_dict_for_slot_allocation.copy()
+    fd = au.get_flow_dict_for_slot_allocation()
     universe = [(i, j)
                 for i, fi in fd.items()
                 for j, fj in fd.items()

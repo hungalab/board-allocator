@@ -180,8 +180,8 @@ class AllocatorUnit:
             ## shortest path list
             self.st_path_table: dict[int, dict[int, tuple[tuple[int]]]] = dict() # st_path_table[src][dst] = [path0, path1, ...]
             ## slot management
-            self.flow_dict_for_slot_allocation: Optional[dict[int, Flow]] = None
-            self.flow_dict_for_slot_allocation_valid: bool = False
+            self._esc_flow_dict_for_slot_allocation = None
+            self._flow_dict_for_slot_allocation_valid: bool = False
 
             # create st-path list
             self.st_path_table \
@@ -218,8 +218,8 @@ class AllocatorUnit:
             ## shortest path list
             self.st_path_table = base.st_path_table
             ## slot management
-            self.flow_dict_for_slot_allocation = base.flow_dict_for_slot_allocation
-            self.flow_dict_for_slot_allocation_valid = base.flow_dict_for_slot_allocation_valid
+            self._esc_flow_dict_for_slot_allocation = base._esc_flow_dict_for_slot_allocation
+            self._flow_dict_for_slot_allocation_valid = base._flow_dict_for_slot_allocation_valid
 
         else:
             raise AllocatorUnitInitializationError(
@@ -254,6 +254,11 @@ class AllocatorUnit:
         used = {vNode.rNode_id 
                 for vNode in self.vNode_dict.values() if vNode.rNode_id is not None}
         return self.core_nodes - used
+
+    ##-----------------------------------------------------------------------------------
+    @property
+    def _flow_dict_for_slot_allocation(self) -> dict[int, Flow]:
+        return self._get_flow_dict_for_slot_allocation()
 
     ##-----------------------------------------------------------------------------------
     def add_app(self, app: App) -> bool:
@@ -297,7 +302,7 @@ class AllocatorUnit:
         remove_flow_id_set = {flow.flow_id for flow in app.flow_list}
         self.flow_dict = {flow_id: flow for flow_id, flow in self.flow_dict.items()
                           if flow_id not in remove_flow_id_set}
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def consistenty_checker(self):
@@ -332,12 +337,12 @@ class AllocatorUnit:
             if pair.path is not None:
                 pair.allocating = False
 
-        # apply slots and invalidate flow_dict_for_slot_allocation_valid
+        # apply slots and invalidate _flow_dict_for_slot_allocation_valid
         flow_id2slot_id = self.greedy_slot_allocation()
         for flow_id, slot_id in flow_id2slot_id.items():
             if flow_id >= 0:
                 self.flow_dict[flow_id].slot_id = slot_id
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def pair_allocation(self, pair_id: int, path: tuple[int]):
@@ -345,7 +350,7 @@ class AllocatorUnit:
         self.pair_dict[pair_id].path = path
 
         # slot_list invalidation
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
     
     ##-----------------------------------------------------------------------------------
     def random_pair_allocation(self, pair_id: int):
@@ -366,7 +371,7 @@ class AllocatorUnit:
         self.pair_dict[pair_id].path = None
 
         # slot_list invalidation
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def node_allocation(self, 
@@ -389,7 +394,7 @@ class AllocatorUnit:
                     self.random_pair_allocation(recv_pair.pair_id)
         
         # slot_list invalidation
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
     
     ##-----------------------------------------------------------------------------------
     def random_node_allocation(self, vNode_id: int):
@@ -409,11 +414,16 @@ class AllocatorUnit:
                 if pair.path is not None:
                     self.pair_deallocation(pair.pair_id)
         
-        self.flow_dict_for_slot_allocation_valid = False
+        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
-    def set_flow_dict_for_slot_allocation(self, None_acceptance: bool = False):
-        if not self.flow_dict_for_slot_allocation_valid:
+    def get_flow_dict_for_slot_allocation(self):
+        return self._get_flow_dict_for_slot_allocation(True).copy()
+
+    ##-----------------------------------------------------------------------------------
+    def _get_flow_dict_for_slot_allocation(self, None_acceptance: bool = False):
+        if (not self._flow_dict_for_slot_allocation_valid) or None_acceptance:
+            self._flow_dict_for_slot_allocation_valid = False
             result: dict[int, Flow] = dict()
             for flow in self.flow_dict.values():
                 if flow.slot_id is not None:
@@ -428,19 +438,36 @@ class AllocatorUnit:
             for flow in result.values():
                 flow.make_flow_graph(None_acceptance)
 
-            self.flow_dict_for_slot_allocation = result
             if not None_acceptance:
-                self.flow_dict_for_slot_allocation_valid = True
+                self._esc_flow_dict_for_slot_allocation = result
+                self._flow_dict_for_slot_allocation_valid = True
+            
+            return result
+
+        else:
+            return self._esc_flow_dict_for_slot_allocation
+    
+    ##-----------------------------------------------------------------------------------
+    def find_maximal_cliques_of_slot_graph(self) -> list[list[int]]:
+        universe = [(i, j)
+                    for i, fi in self._flow_dict_for_slot_allocation.items()
+                    for j, fj in self._flow_dict_for_slot_allocation.items()
+                    if i < j and 
+                    nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
+        node_set = set(self._flow_dict_for_slot_allocation.keys())
+        graph = nx.Graph()
+        graph.add_nodes_from(node_set)
+        graph.add_edges_from(universe)
+        return list(nx.find_cliques(graph))
 
     ##-----------------------------------------------------------------------------------
     def optimal_slot_allocation(self) -> dict[int, int]:
-        self.set_flow_dict_for_slot_allocation()
         universe = [(i, j)
-                    for i, fi in self.flow_dict_for_slot_allocation.items()
-                    for j, fj in self.flow_dict_for_slot_allocation.items()
+                    for i, fi in self._flow_dict_for_slot_allocation.items()
+                    for j, fj in self._flow_dict_for_slot_allocation.items()
                     if i < j and 
                     nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() == 0]
-        node_set = set(self.flow_dict_for_slot_allocation.keys())
+        node_set = set(self._flow_dict_for_slot_allocation.keys())
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
         graph.add_edges_from(universe)
@@ -464,7 +491,7 @@ class AllocatorUnit:
         
         # sort result by the number of branches in the flow graph
         def edge_weight(id_set: set[int]):
-            fd = self.flow_dict_for_slot_allocation
+            fd = self._flow_dict_for_slot_allocation
             return sum([fd[flow_id].flow_graph.number_of_edges() 
                         for flow_id in id_set])
         sorted_result = sorted(result, key=edge_weight, reverse=True)
@@ -488,13 +515,12 @@ class AllocatorUnit:
     
     ##-----------------------------------------------------------------------------------
     def greedy_slot_allocation(self) -> dict[int, int]:
-        self.set_flow_dict_for_slot_allocation()
         universe = [(i, j)
-                    for i, fi in self.flow_dict_for_slot_allocation.items()
-                    for j, fj in self.flow_dict_for_slot_allocation.items()
+                    for i, fi in self._flow_dict_for_slot_allocation.items()
+                    for j, fj in self._flow_dict_for_slot_allocation.items()
                     if i < j and 
                     nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-        node_set = set(self.flow_dict_for_slot_allocation.keys())
+        node_set = set(self._flow_dict_for_slot_allocation.keys())
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
         graph.add_edges_from(universe)
@@ -516,7 +542,7 @@ class AllocatorUnit:
 
         # sort result by the number of branches in the flow graph
         def edge_weight(s: int):
-            fd = self.flow_dict_for_slot_allocation
+            fd = self._flow_dict_for_slot_allocation
             return sum([fd[flow_id].flow_graph.number_of_edges()
                         for flow_id, slot_id in coloring.items() if slot_id == s])
         sorted_remaining_old_slot = sorted(remaining_old_slot, 
@@ -542,7 +568,7 @@ class AllocatorUnit:
         for slot_id in desc_slot_id_list:
             flow_id_list = slot_id2flow_id_list[slot_id]
             for flow_id in flow_id_list:
-                flow_graph = self.flow_dict_for_slot_allocation[flow_id].flow_graph
+                flow_graph = self._flow_dict_for_slot_allocation[flow_id].flow_graph
                 switches_in_flow = set(flow_graph.nodes) - self.core_nodes
                 for s in [s for s in desc_slot_id_list if s >= slot_id]:
                     if s > slot_id:
@@ -565,7 +591,9 @@ class AllocatorUnit:
 
     ##-----------------------------------------------------------------------------------
     def get_total_communication_flow_edges(self) -> int:
-        self.set_flow_dict_for_slot_allocation()
+        for flow in self.flow_dict.values():
+            if flow.slot_id is None:
+                flow.make_flow_graph()
         return sum([flow.flow_graph.number_of_edges() 
                     for flow in self.flow_dict.values()])
     

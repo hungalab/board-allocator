@@ -209,17 +209,7 @@ def alns_test(au: AllocatorUnit,
         best = copy.deepcopy(au)
     best_slot_num = best.get_avg_greedy_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
-    best.set_flow_dict_for_slot_allocation()
-    universe = [(i, j)
-                for i, fi in best.flow_dict_for_slot_allocation.items()
-                for j, fj in best.flow_dict_for_slot_allocation.items()
-                if i < j and 
-                nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-    node_set = set(best.flow_dict_for_slot_allocation.keys())
-    graph = nx.Graph()
-    graph.add_nodes_from(node_set)
-    graph.add_edges_from(universe)
-    maximals = list(nx.find_cliques(graph))
+    maximals = best.find_maximal_cliques_of_slot_graph()
     best_clieque_size = len(max(maximals, key=len))
     maximals = [c for c in maximals if len(c) == best_clieque_size]
     best_max_clieque_size_num = len(maximals)
@@ -233,17 +223,7 @@ def alns_test(au: AllocatorUnit,
         slot_num = au.get_avg_greedy_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         #print("# of slots: {}, # of flows' edges: {}".format(slot_num, total_hops))
-        au.set_flow_dict_for_slot_allocation()
-        universe = [(i, j)
-                    for i, fi in au.flow_dict_for_slot_allocation.items()
-                    for j, fj in au.flow_dict_for_slot_allocation.items()
-                    if i < j and 
-                    nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-        node_set = set(au.flow_dict_for_slot_allocation.keys())
-        graph = nx.Graph()
-        graph.add_nodes_from(node_set)
-        graph.add_edges_from(universe)
-        maximals = list(nx.find_cliques(graph))
+        maximals = au.find_maximal_cliques_of_slot_graph()
         clieque_size = len(max(maximals, key=len))
         maximals = [c for c in maximals if len(c) == clieque_size]
         max_clieque_size_num = len(maximals)

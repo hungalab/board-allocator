@@ -110,7 +110,7 @@ class NSGA2(GA):
             selected: list[Individual]
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
             selected = self.toolbox.map(alns.alns_test, selected, 
-                                        [60] * length, [False] * length)
+                                        [1] * length, [False] * length)
             for ind in selected:
                 del ind.fitness.values
             offsprings += selected
