@@ -158,9 +158,14 @@ class BoardManagementCLI(cmd.Cmd):
                 if ans == 'y':
                     self.do_save()
         
-        self.ba = BoardAllocator(args.topo_file, args.multiEjection)
-        self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
-        self.is_saved = True
+        try:
+            self.ba = BoardAllocator(args.topo_file, args.multiEjection)
+        except OSError as e:
+            for s in traceback.format_exception_only(type(e), e):
+                print(s.rstrip('\n'))
+        else:
+            self.ba.draw_current_node_status(DEFAULT_NODE_STATUS_FIG)
+            self.is_saved = True
     
     ##-----------------------------------------------------------------------------------
     def complete_init(self, text, line, begidx, endidx):
@@ -225,11 +230,17 @@ class BoardManagementCLI(cmd.Cmd):
             return None
         
         for f in args.comm_files:
-            if self.ba.load_app(f):
-                print("{} successfully added.".format(f))
-                self.is_saved = False
+            try:
+                added = self.ba.load_app(f)
+            except OSError as e:
+                for s in traceback.format_exception_only(type(e), e):
+                    print(s.rstrip('\n'))
             else:
-                print("Failed to add {}: too many boards.".format(f))
+                if added:
+                    print("{} successfully added.".format(f))
+                    self.is_saved = False
+                else:
+                    print("Failed to add {}: too many boards.".format(f))
     
     ##-----------------------------------------------------------------------------------
     def complete_add_app(self, text, line, begidx, endidx):
