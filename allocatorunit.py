@@ -18,7 +18,6 @@ def slot_decrypt(encripted_slot: int) -> int:
 #----------------------------------------------------------------------------------------
 class Pair:
     def __init__(self, pair_id: int, src: int, dst: int):
-        # type: (int, int, int) -> None
         self.pair_id = pair_id
         self.src = src
         self.dst = dst
