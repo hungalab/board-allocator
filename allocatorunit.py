@@ -547,7 +547,7 @@ class AllocatorUnit:
         sorted_remaining_old_slot = sorted(remaining_old_slot, 
                                            key=edge_weight, reverse=True)
 
-        for old, new in zip(sorted_remaining_old_slot, sorted(list(remaining_new_slot))):
+        for old, new in zip(sorted_remaining_old_slot, sorted(remaining_new_slot)):
             convert[old] = new
 
         for flow_id, slot_id in coloring.items():
@@ -563,7 +563,7 @@ class AllocatorUnit:
             = {s: [flow_id for flow_id, slot_id in coloring.items() if slot_id == s] 
                    for s in set(coloring.values())}
 
-        desc_slot_id_list = sorted(list(set(coloring.values())), reverse=True)
+        desc_slot_id_list = sorted(set(coloring.values()), reverse=True)
         for slot_id in desc_slot_id_list:
             flow_id_list = slot_id2flow_id_list[slot_id]
             for flow_id in flow_id_list:
