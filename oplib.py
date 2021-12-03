@@ -205,7 +205,9 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
     selected = random.choice(maximals)
 
     # make a list of pairs with their flow_id and sort it by # of hops
-    break_pairs = [(pair, flow_id) for flow_id in selected if flow_id >= 0 for pair in fd[flow_id].pair_list]
+    break_pairs = [(pair, flow_id) 
+                   for flow_id in selected if flow_id >= 0 
+                   for pair in fd[flow_id].pair_list]
     break_pairs.sort(key=lambda item: len(item[0].path))
 
     # pair deallocation
