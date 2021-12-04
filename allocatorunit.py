@@ -603,8 +603,10 @@ class AllocatorUnit:
 
     ##-----------------------------------------------------------------------------------
     def average_hops(self) -> float:
-        total_hops = sum([len(pair.path) for pair in self.pair_dict.values()])
-        return (total_hops / len(self.pair_dict)) - 2
+        total_hops = sum([(len(pair.path) - 2) if pair.path[-1] not in self.core_nodes 
+                          else (len(pair.path) - 3)
+                          for pair in self.pair_dict.values()])
+        return (total_hops / len(self.pair_dict))
     
     ##-----------------------------------------------------------------------------------
     def dumps(self, protocol: int = pickle.HIGHEST_PROTOCOL) -> bytes:
