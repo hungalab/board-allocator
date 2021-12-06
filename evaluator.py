@@ -5,14 +5,14 @@ from allocatorunit import AllocatorUnit
 
 #----------------------------------------------------------------------------------------
 def avg_slots(ind: AllocatorUnit) -> float:
-    return ind.get_avg_greedy_slot_num()
+    return ind.get_avg_slot_num()
 
 #----------------------------------------------------------------------------------------
-def max_slots(ind: AllocatorUnit) -> float:
-    return ind.get_max_greedy_slot_num()
+def max_slots(ind: AllocatorUnit) -> int:
+    return ind.get_max_slot_num()
 
 #----------------------------------------------------------------------------------------
-def edges(ind: AllocatorUnit) -> float:
+def edges(ind: AllocatorUnit) -> int:
     return ind.get_total_communication_flow_edges()
 
 #----------------------------------------------------------------------------------------

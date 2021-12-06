@@ -15,6 +15,9 @@ def generate_initial_solution(au: AllocatorUnit) -> AllocatorUnit:
     for vNode in au.allocating_vNode_list:
         if vNode.rNode_id is None:
             au.random_node_allocation(vNode.vNode_id)
+    
+    # slot allocation
+    au.greedy_slot_allocation()
 
     return au
 
@@ -36,7 +39,7 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
     
     # make a list of pairs with their flow_id
     pairs = [(pair, flow.flow_id) 
-             for flow in au.flow_dict.values() if flow.slot_id is None 
+             for flow in au.flow_dict.values() if flow.allocating
              for pair in flow.pair_list]
     
     # sort by the number of hops
@@ -72,6 +75,9 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
         au.pair_allocation(pair.pair_id, path)
         fd[flow_id].make_flow_graph(True)
     
+    # slot allocation
+    au.greedy_slot_allocation()
+    
     return au
 
 #----------------------------------------------------------------------------------------
@@ -89,6 +95,9 @@ def update_all_paths_of_a_random_node(au: AllocatorUnit) -> AllocatorUnit:
 
     # allocate vNode to rNode_id (replace vNode to same rNode)
     au.node_allocation(vNode_id, rNode_id)
+
+    # slot allocation
+    au.greedy_slot_allocation()
 
     return au
 
@@ -125,6 +134,9 @@ def node_swap(au: AllocatorUnit,
     
     # allocate vNode_id0 to rNode_id1
     au.node_allocation(vNode_id0, rNode_id1)
+
+    # slot allocation
+    au.greedy_slot_allocation()
 
     return au
 
@@ -168,6 +180,9 @@ def break_and_repair(au: AllocatorUnit,
         # repair
         for pair in break_pair_list:
             au.random_pair_allocation(pair.pair_id)
+    
+    # slot allocation
+    au.greedy_slot_allocation()
     
     return au
 
@@ -243,5 +258,8 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
         # apply the best path
         au.pair_allocation(pair.pair_id, path)
         fd[flow_id].make_flow_graph(True)
+    
+    # slot allocation
+    au.greedy_slot_allocation()
     
     return au

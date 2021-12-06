@@ -23,7 +23,7 @@ def alns(au: AllocatorUnit,
 
     # genarate the initial solution
     best = oplib.generate_initial_solution(au)
-    best_slot_num = best.get_avg_greedy_slot_num()
+    best_slot_num = best.get_avg_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
 
     while time.time() - start_time < max_execution_time:
@@ -34,7 +34,7 @@ def alns(au: AllocatorUnit,
         au = oplib.break_and_repair(best, target_node_num)
 
         # evaluation
-        slot_num = au.get_avg_greedy_slot_num()
+        slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
             updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
@@ -59,7 +59,7 @@ def alns(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
-        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
+        print("# of slots: {}".format(best.get_max_slot_num()))
         print("# of routed boards: {}".format(best.board_num_to_be_routed()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
@@ -83,7 +83,7 @@ def alns_only_pairs(au: AllocatorUnit,
 
     # genarate the initial solution
     best = oplib.generate_initial_solution(au)
-    best_slot_num = best.get_avg_greedy_slot_num()
+    best_slot_num = best.get_avg_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
 
     while time.time() - start_time < max_execution_time:
@@ -94,7 +94,7 @@ def alns_only_pairs(au: AllocatorUnit,
         au = oplib.break_and_repair(best, target_pair_num, target='pair')
 
         # evaluation
-        slot_num = au.get_avg_greedy_slot_num()
+        slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
             updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
@@ -119,7 +119,7 @@ def alns_only_pairs(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
-        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
+        print("# of slots: {}".format(best.get_max_slot_num()))
         print("# of routed boards: {}".format(best.board_num_to_be_routed()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
@@ -145,7 +145,7 @@ def alns2(au: AllocatorUnit,
 
     # genarate the initial solution
     best = oplib.generate_initial_solution(au)
-    best_slot_num = best.get_avg_greedy_slot_num()
+    best_slot_num = best.get_avg_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
 
     while time.time() - start_time < max_execution_time:
@@ -155,7 +155,7 @@ def alns2(au: AllocatorUnit,
         au = oplib.node_swap(best)
 
         # evaluation
-        slot_num = au.get_avg_greedy_slot_num()
+        slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
             updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
@@ -180,7 +180,7 @@ def alns2(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
-        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
+        print("# of slots: {}".format(best.get_max_slot_num()))
         print("# of routed boards: {}".format(best.board_num_to_be_routed()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:
@@ -207,7 +207,7 @@ def alns_test(au: AllocatorUnit,
         best = oplib.initialize_by_assist(au)
     else:
         best = copy.deepcopy(au)
-    best_slot_num = best.get_avg_greedy_slot_num()
+    best_slot_num = best.get_avg_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
     maximals = best.find_maximal_cliques_of_slot_graph()
     best_clieque_size = len(max(maximals, key=len))
@@ -220,7 +220,7 @@ def alns_test(au: AllocatorUnit,
     while time.time() - start_time < max_execution_time:
         loops += 1
         au = oplib.break_a_maximal_clique_and_repair(best)
-        slot_num = au.get_avg_greedy_slot_num()
+        slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         #print("# of slots: {}, # of flows' edges: {}".format(slot_num, total_hops))
         maximals = au.find_maximal_cliques_of_slot_graph()
@@ -271,7 +271,7 @@ def alns_test(au: AllocatorUnit,
         #au = break_and_repair_a_maximal_clique(best)
         #
         ## evaluation
-        #slot_num = au.get_avg_greedy_slot_num()
+        #slot_num = au.get_avg_slot_num()
         #total_hops = au.get_total_communication_flow_edges()
         #if slot_num < best_slot_num:
         #    updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
@@ -296,7 +296,7 @@ def alns_test(au: AllocatorUnit,
         print("# of loops: {}".format(loops))
         print("# of updates for slot decrease: {}".format(cnt_slot_change))
         print("# of updates for total slot decrease: {}".format(cnt_total_hops_change))
-        print("# of slots: {}".format(best.get_max_greedy_slot_num()))
+        print("# of slots: {}".format(best.get_max_slot_num()))
         print("# of routed boards: {}".format(best.board_num_to_be_routed()))
         print("allocated rNode_id: {}".format(best.temp_allocated_rNode_dict))
         for elm in updatelog:

@@ -108,7 +108,7 @@ class NSGA2(GA):
             # 2-opt execution
             length = min(process_num, tournament_max_length)
             selected: list[Individual]
-            selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4) )
+            selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4))
             selected = self.toolbox.map(alns.alns_test, selected, 
                                         [1] * length, [False] * length)
             for ind in selected:

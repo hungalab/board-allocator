@@ -2,7 +2,6 @@ from __future__ import annotations
 import random
 import copy
 import collections
-from re import I
 import numpy
 from functools import partial
 import multiprocessing
@@ -10,7 +9,6 @@ from typing import Callable, Iterable, Any
 
 from deap import tools
 from deap import base
-from deap import creator
 
 # my library
 from allocatorunit import AllocatorUnit
@@ -78,6 +76,9 @@ def cx_by_mask(parent0: Individual, parent1: Individual, mask: dict[int, int]
     for pair in child.allocating_pair_list:
         if pair.path is None:
             child.random_pair_allocation(pair.pair_id)
+
+    # slot allocation
+    child.greedy_slot_allocation()
 
     # delete the fitness
     del child.fitness.values
@@ -158,6 +159,7 @@ def mut_swap(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
     
     if random.random() < mut_pb:
         oplib.node_swap(ind)
+        ind.greedy_slot_allocation()
         del ind.fitness.values
 
     return ind,

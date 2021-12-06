@@ -406,7 +406,7 @@ class BoardAllocator:
         running_pairs = [pair for pair in self.au.pair_dict.values() 
                          if pair.path is not None]
         if len(running_pairs) != 0:
-            print("# of slots: {}".format(self.au.get_max_greedy_slot_num()))
+            print("# of slots: {}".format(self.au.get_max_slot_num()))
             print("average hops: {}".format(self.au.average_hops()))
             print("# of routed boards: {}".format(self.au.board_num_to_be_routed()))
         else:
