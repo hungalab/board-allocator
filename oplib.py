@@ -4,7 +4,7 @@ import copy
 from typing import Optional
 import networkx as nx
 
-from allocatorunit import AllocatorUnit, Pair
+from allocatorunit import AllocatorUnit, Pair, Flow
 
 #----------------------------------------------------------------------------------------
 def generate_initial_solution(au: AllocatorUnit) -> AllocatorUnit:
@@ -29,9 +29,6 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
         assert pair.path is None
 
     au = copy.deepcopy(au)
-    
-    # make temporary flow dict
-    fd = au.get_flow_dict_for_slot_allocation()
 
     # node allocation
     for vNode in au.allocating_vNode_list:
@@ -49,6 +46,11 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
         return len(au.st_path_table[src][dst][0])
     pairs.sort(key=pair_hops)
 
+    # reconstruct flow graphs
+    for flow in au.flow_dict.values():
+        if flow.allocating:
+            flow.make_flow_graph(None_acceptance=True)
+
     for pair, flow_id in pairs:
         src = pair.src_vNode.rNode_id
         dst = pair.dst_vNode.rNode_id
@@ -57,11 +59,11 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
         result = dict()
         for path in au.st_path_table[src][dst]:
             au.pair_allocation(pair.pair_id, path)
-            fd[flow_id].make_flow_graph(True)
-            fg = fd[flow_id].flow_graph
-            score = [(nx.intersection(fg, f.flow_graph).number_of_edges() != 0) 
-                      and (i != flow_id) 
-                     for i, f in fd.items()].count(True)
+            au.flow_dict[flow_id].make_flow_graph(True)
+            fg = au.flow_dict[flow_id].flow_graph
+            score = len({f.cvid for i, f in au.flow_dict.items()
+                         if (nx.intersection(fg, f.flow_graph).number_of_edges() != 0)
+                         and (i != flow_id)})
             result[path] = (score, fg.number_of_edges())
 
         # select the best path
@@ -73,7 +75,7 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
 
         # apply the best path
         au.pair_allocation(pair.pair_id, path)
-        fd[flow_id].make_flow_graph(True)
+        au.flow_dict[flow_id].make_flow_graph(True)
     
     # slot allocation
     au.greedy_slot_allocation()
@@ -191,17 +193,7 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
     au = copy.deepcopy(au)
 
     # find maximal cliques (size >= 2)
-    fd = au.get_flow_dict_for_slot_allocation()
-    universe = [(i, j)
-                for i, fi in fd.items()
-                for j, fj in fd.items()
-                if i < j and 
-                nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-    node_set = set(fd.keys())
-    graph = nx.Graph()
-    graph.add_nodes_from(node_set)
-    graph.add_edges_from(universe)
-    maximals = [c for c in nx.find_cliques(graph) if len(c) > 1]
+    maximals = [c for c in au.find_maximal_cliques_of_slot_graph() if len(c) > 1]
 
     # select one of maximal cliques
     #for i in range(len(node_set)):
@@ -220,18 +212,19 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
     selected = random.choice(maximals)
 
     # make a list of pairs with their flow_id and sort it by # of hops
-    break_pairs = [(pair, flow_id) 
-                   for flow_id in selected if flow_id >= 0 
-                   for pair in fd[flow_id].pair_list]
+    break_pairs = [(pair, cvid) 
+                   for cvid in selected if not Flow.is_encrypted_cvid(cvid)
+                   for pair in au.flow_dict[cvid].pair_list]
     break_pairs.sort(key=lambda item: len(item[0].path))
 
     # pair deallocation
     for pair, _ in break_pairs:
         au.pair_deallocation(pair.pair_id)
     
-    # reconstruct fd's flow graphs
-    for flow_id in selected:
-        fd[flow_id].make_flow_graph(None_acceptance=True)
+    # reconstruct selected nodes' flow graphs
+    for cvid in selected:
+        if not Flow.is_encrypted_cvid(cvid):
+            au.flow_dict[cvid].make_flow_graph(None_acceptance=True)
     
     for pair, flow_id in break_pairs:
         src = pair.src_vNode.rNode_id
@@ -241,11 +234,11 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
         # calculate score for each path
         for path in au.st_path_table[src][dst]:
             au.pair_allocation(pair.pair_id, path)
-            fd[flow_id].make_flow_graph(None_acceptance=True)
-            fg = fd[flow_id].flow_graph
-            score = [(nx.intersection(fg, f.flow_graph).number_of_edges() != 0) 
-                      and (i != flow_id) 
-                     for i, f in fd.items()].count(True)
+            au.flow_dict[flow_id].make_flow_graph(None_acceptance=True)
+            fg = au.flow_dict[flow_id].flow_graph
+            score = len({f.cvid for i, f in au.flow_dict.items()
+                         if (nx.intersection(fg, f.flow_graph).number_of_edges() != 0)
+                         and (i != flow_id)})
             result[path] = (score, fg.number_of_edges())
         
         # select the best path
@@ -257,7 +250,7 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
 
         # apply the best path
         au.pair_allocation(pair.pair_id, path)
-        fd[flow_id].make_flow_graph(True)
+        au.flow_dict[flow_id].make_flow_graph(True)
     
     # slot allocation
     au.greedy_slot_allocation()

@@ -11,6 +11,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 import random
 from typing import Optional, Callable
+import pickle
 
 import networkx as nx
 import matplotlib
@@ -437,11 +438,40 @@ class BoardAllocator:
         nx.draw_networkx(self.au.topology, pos, node_color=node_color)
         plt.savefig(path)
         plt.close()
+    
+    ##-----------------------------------------------------------------------------------
+    def dumps(self, protocol: int = pickle.HIGHEST_PROTOCOL) -> bytes:
+        return pickle.dumps(self, protocol)
+    
+    ##-----------------------------------------------------------------------------------
+    def dump(self, file_name: str, protocol: int = pickle.HIGHEST_PROTOCOL):
+        with open(file_name, 'wb') as f:
+            pickle.dump(self, f, protocol)
+    
+    ##-----------------------------------------------------------------------------------
+    @staticmethod
+    def loads(obj: bytes) -> AllocatorUnit:
+        return pickle.loads(obj)
+    
+    ##-----------------------------------------------------------------------------------
+    @staticmethod
+    def load(file_name: str) -> AllocatorUnit:
+        with open(file_name, 'rb') as f:
+            data = pickle.load(f)
+        return data
 
 #----------------------------------------------------------------------------------------
 if __name__ == '__main__':
     args = parser()
     clean_dir(FIG_DIR)
-    actor = BoardAllocator(args.t, args.me)
+    #actor = BoardAllocator(args.t, args.me)
+    def main():
+        actor = BoardAllocator.load('sample.pickle')
+        actor.load_app(args.c)
+        actor.two_opt(args.m * 60)
+        #actor.dump('sample.pickle')
+    import cProfile
+    from pstats import SortKey
+    cProfile.run('main()', sort=SortKey.CUMULATIVE)
     
     print(" ### OVER ### ")

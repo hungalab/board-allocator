@@ -3,17 +3,19 @@ import pickle
 import copy
 import random
 from typing import Optional, Iterable
+
+from networkx.algorithms import coloring
 from mcc import mcc
 
 import networkx as nx
 
 #----------------------------------------------------------------------------------------
-def slot_encrypt(slot: int) -> int:
-    return -(slot + 1)
+def slot_encrypt(slot_id: int) -> int:
+    return -(slot_id + 1)
 
 #----------------------------------------------------------------------------------------
-def slot_decrypt(encripted_slot: int) -> int:
-    return -(encripted_slot + 1)
+def slot_decrypt(encripted_slot_id: int) -> int:
+    return -(encripted_slot_id + 1)
 
 #----------------------------------------------------------------------------------------
 class Pair:
@@ -42,11 +44,22 @@ class Pair:
 #----------------------------------------------------------------------------------------
 class Flow:
     def __init__(self, flow_id: Optional[int] = None, pair_list: list[Pair] = []):
+        assert flow_id >= 0
         self.flow_id = flow_id
         self.pair_list = pair_list
         self.slot_id: Optional[int] = None
         self.flow_graph: Optional[nx.DiGraph] = None
         self.allocating: bool = True
+    
+    ##-----------------------------------------------------------------------------------
+    @property
+    def cvid(self):
+        return self.flow_id if self.allocating else slot_encrypt(self.slot_id)
+    
+    ##-----------------------------------------------------------------------------------
+    @classmethod
+    def is_encrypted_cvid(cls, cvid):
+        return cvid < 0
     
     ##-----------------------------------------------------------------------------------
     def make_flow_graph(self, None_acceptance: bool = False):
@@ -56,23 +69,6 @@ class Flow:
             if None_acceptance and path is None:
                 continue
             nx.add_path(self.flow_graph, path)
-
-    ##-----------------------------------------------------------------------------------
-    def merge(self, other: Flow):
-        assert other.slot_id is not None
-
-        if self.flow_id is None:
-            self.flow_id = slot_encrypt(other.slot_id)
-            self.allocating = False
-        elif self.flow_id != slot_encrypt(other.slot_id):
-            raise ValueError("The values of slot_id are different form each other.")
-        
-        if self.slot_id is None:
-            self.slot_id = other.slot_id
-        else:
-            assert self.slot_id == other.slot_id
-        
-        self.pair_list += other.pair_list
     
     ##-----------------------------------------------------------------------------------
     def _hasher(self) -> int:
@@ -188,9 +184,6 @@ class AllocatorUnit:
             self.switch_nodes: set[int] = set(topology.nodes) - self.core_nodes
             ## shortest path list
             self.st_path_table: dict[int, dict[int, tuple[tuple[int]]]] = dict() # st_path_table[src][dst] = [path0, path1, ...]
-            ## slot management
-            self._esc_flow_dict_for_slot_allocation = None
-            self._flow_dict_for_slot_allocation_valid: bool = False
 
             # create st-path list
             self.st_path_table \
@@ -227,9 +220,6 @@ class AllocatorUnit:
             self.switch_nodes = base.switch_nodes
             ## shortest path list
             self.st_path_table = base.st_path_table
-            ## slot management
-            self._esc_flow_dict_for_slot_allocation = base._esc_flow_dict_for_slot_allocation
-            self._flow_dict_for_slot_allocation_valid = base._flow_dict_for_slot_allocation_valid
 
         else:
             raise AllocatorUnitInitializationError(
@@ -259,11 +249,6 @@ class AllocatorUnit:
         used = {vNode.rNode_id 
                 for vNode in self.vNode_dict.values() if vNode.rNode_id is not None}
         return self.core_nodes - used
-
-    ##-----------------------------------------------------------------------------------
-    @property
-    def _flow_dict_for_slot_allocation(self) -> dict[int, Flow]:
-        return self._get_flow_dict_for_slot_allocation()
 
     ##-----------------------------------------------------------------------------------
     def add_app(self, app: App) -> bool:
@@ -422,152 +407,110 @@ class AllocatorUnit:
                     self.pair_deallocation(pair.pair_id)
         
         self._flow_dict_for_slot_allocation_valid = False
-
-    ##-----------------------------------------------------------------------------------
-    def get_flow_dict_for_slot_allocation(self):
-        return self._get_flow_dict_for_slot_allocation(True).copy()
-
-    ##-----------------------------------------------------------------------------------
-    def _get_flow_dict_for_slot_allocation(self, None_acceptance: bool = False):
-        if (not self._flow_dict_for_slot_allocation_valid) or None_acceptance:
-            self._flow_dict_for_slot_allocation_valid = False
-            result: dict[int, Flow] = dict()
-            for flow in self.flow_dict.values():
-                if not flow.allocating:
-                    try:
-                        result[slot_encrypt(flow.slot_id)].merge(flow)
-                    except KeyError:
-                        result[slot_encrypt(flow.slot_id)] = Flow()
-                        result[slot_encrypt(flow.slot_id)].merge(flow)
-                else:
-                    result[flow.flow_id] = flow
-
-            for flow in result.values():
-                flow.make_flow_graph(None_acceptance)
-
-            if not None_acceptance:
-                self._esc_flow_dict_for_slot_allocation = result
-                self._flow_dict_for_slot_allocation_valid = True
-            
-            return result
-
-        else:
-            return self._esc_flow_dict_for_slot_allocation
     
     ##-----------------------------------------------------------------------------------
     def find_maximal_cliques_of_slot_graph(self) -> list[list[int]]:
-        universe = [(i, j)
-                    for i, fi in self._flow_dict_for_slot_allocation.items()
-                    for j, fj in self._flow_dict_for_slot_allocation.items()
-                    if i < j and 
-                    nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-        node_set = set(self._flow_dict_for_slot_allocation.keys())
+        # construct graphs of flows in allocating
+        for flow in self.flow_dict.values():
+            if flow.allocating:
+                flow.make_flow_graph()
+        # find maximal cliques
+        edges = {(fi.cvid, fj.cvid)
+                 for i, fi in self.flow_dict.items()
+                 for j, fj in self.flow_dict.items()
+                 if i < j and 
+                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        node_set = {flow.cvid for flow in self.flow_dict.values()}
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
-        graph.add_edges_from(universe)
+        graph.add_edges_from(edges)
         return list(nx.find_cliques(graph))
 
     ##-----------------------------------------------------------------------------------
     def optimal_slot_allocation(self):
-        fd = self._flow_dict_for_slot_allocation
-        universe = [(i, j)
-                    for i, fi in fd.items()
-                    for j, fj in fd.items()
-                    if i < j and 
-                    nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() == 0]
-        node_set = set(fd.keys())
+        # construct graphs of flows in allocating
+        for flow in self.flow_dict.values():
+            if flow.allocating:
+                flow.make_flow_graph()
+        
+        # get mcc
+        edges = {(fi.cvid, fj.cvid)
+                 for i, fi in self.flow_dict.items()
+                 for j, fj in self.flow_dict.items()
+                 if i < j and 
+                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        node_set = {flow.cvid for flow in self.flow_dict.values()}
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
-        graph.add_edges_from(universe)
+        graph.add_edges_from(edges)
         result = mcc(graph)
-        
-        existing_flow = {flow_id for id_set in result for flow_id in id_set 
-                         if flow_id < 0}
 
-        # convert a list of sets to a dict
-        result_dict = dict()
-        used_slot = set()
-        # Assign slot_id that has already been assigned
-        for id_set in result:
-            common_set = id_set & existing_flow
-            assert 0 <= len(common_set) <= 1
-            if len(common_set) == 1:
-                slot_id = slot_decrypt(common_set.pop())
-                used_slot.add(slot_id)
-                for flow_id in id_set:
-                    result_dict[flow_id] = slot_id
+        # convert mcc style (list[set[int]]) to coloring style (dict[int, int])
+        coloring = {cvid: i for i, id_set in enumerate(result) for cvid in id_set}
         
-        # sort result by the number of branches in the flow graph
-        def edge_weight(id_set: set[int]):
-            return sum([fd[flow_id].flow_graph.number_of_edges() 
-                        for flow_id in id_set])
-        sorted_result = sorted(result, key=edge_weight, reverse=True)
-
-        # assign the other slot_id
-        slot_id = 0
-        for id_set in sorted_result:
-            while slot_id in used_slot:
-                slot_id += 1
-            if len(id_set & existing_flow) == 0:
-                used_slot.add(slot_id)
-                for flow_id in id_set:
-                    result_dict[flow_id] = slot_id
-                slot_id += 1
-
-        for flow_id, slot_id in result_dict.items():
-            if flow_id >= 0:
-                self.flow_dict[flow_id].slot_id = slot_id
-    
-    ##-----------------------------------------------------------------------------------
-    def greedy_slot_allocation(self):
-        fd = self._flow_dict_for_slot_allocation
-        universe = [(i, j)
-                    for i, fi in fd.items()
-                    for j, fj in fd.items()
-                    if i < j and 
-                    nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0]
-        node_set = set(fd.keys())
-        graph = nx.Graph()
-        graph.add_nodes_from(node_set)
-        graph.add_edges_from(universe)
-        coloring = nx.coloring.greedy_color(graph, strategy='saturation_largest_first')
-        
-        # Leave previously assigned slot_id's as they are.
-        convert = dict()
-        remaining_old_slot = set(coloring.values())
-        exist_slot = {slot_decrypt(flow_id) 
-                      for flow_id in coloring.keys() if flow_id < 0}
-        remaining_new_slot = set(coloring.values()) | exist_slot
-        for flow_id, slot_id in coloring.items():
-            if flow_id < 0:
-                decrypted_slot = slot_decrypt(flow_id)
-                remaining_old_slot.remove(slot_id)
-                remaining_new_slot.remove(decrypted_slot)
-                convert[slot_id] = decrypted_slot
-        assert len(remaining_old_slot) <= len(remaining_new_slot)
+       # Leave previously assigned slot_id's as they are.
+        convert = {slot_id: slot_decrypt(cvid) 
+                   for cvid, slot_id in coloring.items() if Flow.is_encrypted_cvid(cvid)}
+        pre_convert = set(coloring.values()) - set(convert.keys())
+        post_convert = set(coloring.values()) - set(convert.values())
 
         # sort result by the number of branches in the flow graph
         def edge_weight(s: int):
-            return sum([fd[flow_id].flow_graph.number_of_edges()
-                        for flow_id, slot_id in coloring.items() if slot_id == s])
-        sorted_remaining_old_slot = sorted(remaining_old_slot, 
-                                           key=edge_weight, reverse=True)
+            return sum([self.flow_dict[cvid].flow_graph.number_of_edges()
+                        for cvid, slot_id in coloring.items() if slot_id == s])
+        pre_convert = sorted(pre_convert, key=edge_weight, reverse=True)
 
-        for old, new in zip(sorted_remaining_old_slot, sorted(remaining_new_slot)):
+        for old, new in zip(pre_convert, sorted(post_convert)):
             convert[old] = new
 
-        for flow_id, slot_id in coloring.items():
-            coloring[flow_id] = convert[slot_id]
+        # assign converted slot_id
+        for cvid, slot_id in coloring.items():
+            if not Flow.is_encrypted_cvid(cvid):
+                self.flow_dict[cvid].slot_id = convert[slot_id]
+    
+    ##-----------------------------------------------------------------------------------
+    def greedy_slot_allocation(self):
+        # construct graphs of flows in allocating
+        for flow in self.flow_dict.values():
+            if flow.allocating:
+                flow.make_flow_graph()
+        
+        # get coloring
+        edges = {(fi.cvid, fj.cvid)
+                 for i, fi in self.flow_dict.items()
+                 for j, fj in self.flow_dict.items()
+                 if i < j and 
+                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        node_set = {flow.cvid for flow in self.flow_dict.values()}
+        graph = nx.Graph()
+        graph.add_nodes_from(node_set)
+        graph.add_edges_from(edges)
+        coloring: dict[int, int] = nx.coloring.greedy_color(graph, strategy='DSATUR')
+        
+        # Leave previously assigned slot_id's as they are.
+        convert = {slot_id: slot_decrypt(cvid) 
+                   for cvid, slot_id in coloring.items() if Flow.is_encrypted_cvid(cvid)}
+        pre_convert = set(coloring.values()) - set(convert.keys())
+        post_convert = set(coloring.values()) - set(convert.values())
 
-        # assign slot_id
-        for flow_id, slot_id in coloring.items():
-            if flow_id >= 0:
-                self.flow_dict[flow_id].slot_id = slot_id
+        # sort result by the number of branches in the flow graph
+        def edge_weight(s: int):
+            return sum([self.flow_dict[cvid].flow_graph.number_of_edges()
+                        for cvid, slot_id in coloring.items() if slot_id == s])
+        pre_convert = sorted(pre_convert, key=edge_weight, reverse=True)
+
+        for old, new in zip(pre_convert, sorted(post_convert)):
+            convert[old] = new
+
+        # assign converted slot_id
+        for cvid, slot_id in coloring.items():
+            if not Flow.is_encrypted_cvid(cvid):
+                self.flow_dict[cvid].slot_id = convert[slot_id]
     
     ##-----------------------------------------------------------------------------------
     def get_avg_slot_num(self) -> float:
         switch2slots = {sw: 0 for sw in self.switch_nodes}
-        slot_id_set = set([flow.slot_id for flow in self.flow_dict.values()])
+        slot_id_set = {flow.slot_id for flow in self.flow_dict.values()}
         slot_id2flow_id_list \
             = {s: [f.flow_id for f in self.flow_dict.values() if f.slot_id == s] 
                for s in slot_id_set}
