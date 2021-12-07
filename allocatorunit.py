@@ -4,10 +4,9 @@ import copy
 import random
 from typing import Optional, Iterable
 
-from networkx.algorithms import coloring
-from mcc import mcc
-
 import networkx as nx
+
+from mcc import mcc
 
 #----------------------------------------------------------------------------------------
 def slot_encrypt(slot_id: int) -> int:
@@ -144,44 +143,20 @@ class App:
                and (self.pair_list == other.pair_list)
 
 #----------------------------------------------------------------------------------------
-class AllocatorUnitInitializationError(Exception):
-    # This class is for errors related to AllocatorUnit constructor's arguments.
-    pass
-
-#----------------------------------------------------------------------------------------
 class AllocatorUnit:
-    def __init__(self, 
-                 topology: Optional[nx.DiGraph] = None, 
-                 seed: Optional[AllocatorUnit | bytes | str] = None):
-        '''
-        You can use this constructor in two ways.
-
-        1) AllocatorUnit(topology=topology, seed=None)
-        Create a brand new AllocatorUnit.
-
-        2) AllocatorUnit(topology=None, seed=seed)
-        Create an AllocatorUnit from another AllocatorUnit.
-        The 2nd argument "seed" can take 
-            i)   a bytes object in which AllocatorUnit has been serialized by pickle, 
-            ii)  a file in which the serialized bytes object has been saved by pickle, 
-            iii) or AllocatorUnit.
-
-        Note: AllocatorUnit(topology=topology, seed=seed) 
-        and AllocationUnit(topology=None, seed=None)
-        raise Error.
-        '''
-        if (topology is not None) and (seed is None):
+    def __init__(self, seed: nx.DiGraph | AllocatorUnit | bytes | str = None):
+        if isinstance(seed, nx.DiGraph):
             ## topology
-            self.topology = topology # the topology for this allocator
+            self.topology = seed # the topology for this allocator
             ## dictionaries (vNode, pair, app)
             self.vNode_dict: dict[int, VNode] = dict()
             self.flow_dict: dict[int, Flow] = dict()
             self.pair_dict: dict[int, Pair] = dict()
             self.app_dict: dict[int, App] = dict()
             ## core nodes
-            self.core_nodes: set[int] = {i for i, module in topology.nodes(data="module")
+            self.core_nodes: set[int] = {i for i, module in seed.nodes(data="module")
                                          if module == "core"}
-            self.switch_nodes: set[int] = set(topology.nodes) - self.core_nodes
+            self.switch_nodes: set[int] = set(seed.nodes) - self.core_nodes
             ## shortest path list
             self.st_path_table: dict[int, dict[int, tuple[tuple[int]]]] = dict() # st_path_table[src][dst] = [path0, path1, ...]
 
@@ -190,13 +165,13 @@ class AllocatorUnit:
             = {src: 
                   {dst: 
                       tuple(
-                          tuple(p[0:-1]) if topology.edges[p[-2], p[-1]]["multi_ejection"]
+                          tuple(p[0:-1]) if seed.edges[p[-2], p[-1]]["multi_ejection"]
                           else tuple(p)
-                          for p in nx.all_shortest_paths(topology, src, dst))
+                          for p in nx.all_shortest_paths(seed, src, dst))
                    for dst in self.core_nodes if dst != src} 
                for src in self.core_nodes}
         
-        elif (topology is None) and (seed is not None):
+        elif isinstance(seed, (AllocatorUnit, bytes, str)):
             if isinstance(seed, AllocatorUnit):
                 base = copy.deepcopy(seed)
             elif isinstance(seed, bytes):
@@ -204,9 +179,6 @@ class AllocatorUnit:
             elif isinstance(seed, str):
                 with open(seed, 'rb') as f:
                     base = pickle.load(f)
-            else:
-                raise TypeError("The 2nd argument \"seed\" must be "
-                                "'AllocationUnit', 'bytes', or 'str'.")
 
             ## topology
             self.topology = base.topology
@@ -222,9 +194,8 @@ class AllocatorUnit:
             self.st_path_table = base.st_path_table
 
         else:
-            raise AllocatorUnitInitializationError(
-            "Only one of the arguments of the AllocatorUnit constructor"
-            "should be specified, and the other should be None.")
+            raise ValueError("The argument type must be 'networkx.DiGraph', "
+                             "'AllocatorUnit', 'bytes', or 'str'.")
 
     ##-----------------------------------------------------------------------------------
     @property

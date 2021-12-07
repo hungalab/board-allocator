@@ -22,7 +22,7 @@ class Fitness(base.Fitness):
 #----------------------------------------------------------------------------------------
 class Individual(AllocatorUnit):
     def __init__(self, seed: AllocatorUnit | bytes | str):
-        super().__init__(None, seed)
+        super().__init__(seed)
         self.fitness = Fitness()
 
 #----------------------------------------------------------------------------------------
