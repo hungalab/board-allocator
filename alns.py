@@ -1,7 +1,6 @@
 import time
 import random
 import copy
-import networkx as nx
 
 # my library
 import oplib

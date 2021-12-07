@@ -4,8 +4,6 @@ import json
 import os
 import os.path
 import shutil
-import copy
-from networkx.algorithms import core
 import numpy as np
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
