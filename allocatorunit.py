@@ -263,7 +263,6 @@ class AllocatorUnit:
         remove_flow_id_set = {flow.flow_id for flow in app.flow_list}
         self.flow_dict = {flow_id: flow for flow_id, flow in self.flow_dict.items()
                           if flow_id not in remove_flow_id_set}
-        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def consistenty_checker(self):
@@ -304,16 +303,10 @@ class AllocatorUnit:
                 flow.allocating = False
                 flow.make_flow_graph()
 
-        # invalidate _flow_dict_for_slot_allocation_valid
-        self._flow_dict_for_slot_allocation_valid = False
-
     ##-----------------------------------------------------------------------------------
     def pair_allocation(self, pair_id: int, path: tuple[int]):
         # update path
         self.pair_dict[pair_id].path = path
-
-        # slot_list invalidation
-        self._flow_dict_for_slot_allocation_valid = False
     
     ##-----------------------------------------------------------------------------------
     def random_pair_allocation(self, pair_id: int):
@@ -332,9 +325,6 @@ class AllocatorUnit:
     def pair_deallocation(self, pair_id: int):
         # modify the correspond pair and abstract the path
         self.pair_dict[pair_id].path = None
-
-        # slot_list invalidation
-        self._flow_dict_for_slot_allocation_valid = False
 
     ##-----------------------------------------------------------------------------------
     def node_allocation(self, 
@@ -355,9 +345,6 @@ class AllocatorUnit:
             for recv_pair in vNode.recv_pair_list:
                 if recv_pair.src_vNode.rNode_id is not None:
                     self.random_pair_allocation(recv_pair.pair_id)
-        
-        # slot_list invalidation
-        self._flow_dict_for_slot_allocation_valid = False
     
     ##-----------------------------------------------------------------------------------
     def random_node_allocation(self, vNode_id: int):
@@ -376,8 +363,6 @@ class AllocatorUnit:
             for pair in vNode.pair_list:
                 if pair.path is not None:
                     self.pair_deallocation(pair.pair_id)
-        
-        self._flow_dict_for_slot_allocation_valid = False
     
     ##-----------------------------------------------------------------------------------
     def find_maximal_cliques_of_slot_graph(self) -> list[list[int]]:
