@@ -42,7 +42,7 @@ class Pair:
 
 #----------------------------------------------------------------------------------------
 class Flow:
-    def __init__(self, flow_id: Optional[int] = None, pair_list: list[Pair] = []):
+    def __init__(self, flow_id: int, pair_list: list[Pair]):
         assert flow_id >= 0
         self.flow_id = flow_id
         self.pair_list = pair_list
@@ -52,12 +52,12 @@ class Flow:
     
     ##-----------------------------------------------------------------------------------
     @property
-    def cvid(self):
+    def cvid(self) -> int:
         return self.flow_id if self.allocating else slot_encrypt(self.slot_id)
     
     ##-----------------------------------------------------------------------------------
     @classmethod
-    def is_encrypted_cvid(cls, cvid):
+    def is_encrypted_cvid(cls, cvid: int) -> bool:
         return cvid < 0
     
     ##-----------------------------------------------------------------------------------
