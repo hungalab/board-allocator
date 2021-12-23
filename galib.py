@@ -9,9 +9,10 @@ from typing import Callable, Iterable, Any
 
 from deap import tools
 from deap import base
+import networkx as nx
 
 # my library
-from allocatorunit import AllocatorUnit
+from allocatorunit import AllocatorUnit, Pair
 from evaluator import Evaluator
 import oplib
 
@@ -158,8 +159,21 @@ def mut_swap(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
     ind = copy.deepcopy(individual)
     
     if random.random() < mut_pb:
-        oplib.node_swap(ind)
-        ind.greedy_slot_allocation()
+        ind = oplib.node_swap(ind)
+        del ind.fitness.values
+
+    return ind,
+
+#----------------------------------------------------------------------------------------
+def mut_clique(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
+
+    if not 0 <= mut_pb <= 1 :
+        raise ValueError("Specify a value between 0 and 1.")
+    
+    ind = copy.deepcopy(individual)
+    
+    if random.random() < mut_pb:
+        ind = oplib.break_a_maximal_clique_and_repair(ind)
         del ind.fitness.values
 
     return ind,
@@ -211,12 +225,12 @@ class GA:
 
         # toolbox settings
         self.toolbox.register("empty_individual", Individual, seed)
-        self.__ind_seed = self.toolbox.empty_individual()
-        self.toolbox.register("individual", oplib.initialize_by_assist, self.__ind_seed)
+        self._ind_seed = self.toolbox.empty_individual()
+        self.toolbox.register("individual", oplib.generate_initial_solution, self._ind_seed)
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         self.toolbox.register("evaluate", Evaluator.evaluate)
         self.toolbox.register("mate", cx_uniform)
-        self.toolbox.register("mutate", mut_swap)
+        self.toolbox.register("mutate", mut_clique)
         self.toolbox.register("select", tools.selTournamentDCD)
 
         # statistics settings

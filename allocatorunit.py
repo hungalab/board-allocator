@@ -18,12 +18,14 @@ def slot_decrypt(encripted_slot_id: int) -> int:
 
 #----------------------------------------------------------------------------------------
 class Pair:
-    def __init__(self, pair_id: int, src: int, dst: int):
+    def __init__(self, pair_id: int, src: int, dst: int, flow_id: int):
         self.pair_id = pair_id
         self.src = src
         self.dst = dst
+        self.flow_id = flow_id
         self.src_vNode: Optional[VNode] = None
         self.dst_vNode: Optional[VNode] = None
+        self.owner: Optional[Flow] = None
         self.path: Optional[tuple[int]] = None # using path list
         self.allocating: bool = True
     
@@ -32,12 +34,13 @@ class Pair:
         '''
         This method is assumed to be used ONLY for AllocatorUnit.unique() or _hasher
         '''
-        return hash((self.pair_id, self.src, self.dst, self.path, self.allocating))
+        return hash((self.pair_id, self.src, self.dst, self.flow_id, self.path, self.allocating))
     
     ##-----------------------------------------------------------------------------------
     def __eq__(self, other: Pair) -> bool:
         return (self.pair_id == other.pair_id) and (self.src == other.src) \
-               and (self.dst == other.dst) and (self.path == other.path) \
+               and (self.dst == other.dst) and (self.flow_id == other.flow_id) \
+               and (self.path == other.path) \
                and (self.allocating == other.allocating)
 
 #----------------------------------------------------------------------------------------
@@ -347,10 +350,10 @@ class AllocatorUnit:
                     self.random_pair_allocation(recv_pair.pair_id)
     
     ##-----------------------------------------------------------------------------------
-    def random_node_allocation(self, vNode_id: int):
+    def random_node_allocation(self, vNode_id: int, with_pair_allocation: bool = True):
         # pick up an empty rNove
         map_rNode_id = random.choice(list(self.empty_rNode_set))
-        self.node_allocation(vNode_id, map_rNode_id)
+        self.node_allocation(vNode_id, map_rNode_id, with_pair_allocation)
 
     ##-----------------------------------------------------------------------------------
     def node_deallocation(self, vNode_id: int, with_pair_deallocation: bool = True):
@@ -425,11 +428,11 @@ class AllocatorUnit:
                 self.flow_dict[cvid].slot_id = convert[slot_id]
     
     ##-----------------------------------------------------------------------------------
-    def greedy_slot_allocation(self):
+    def greedy_slot_allocation(self, None_acceptance: bool = False):
         # construct graphs of flows in allocating
         for flow in self.flow_dict.values():
             if flow.allocating:
-                flow.make_flow_graph()
+                flow.make_flow_graph(None_acceptance)
         
         # get coloring
         edges = {(fi.cvid, fj.cvid)
@@ -441,7 +444,7 @@ class AllocatorUnit:
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
         graph.add_edges_from(edges)
-        coloring: dict[int, int] = nx.coloring.greedy_color(graph, strategy='DSATUR')
+        coloring: dict[int, int] = nx.coloring.greedy_color(graph, strategy='largest_first')
         
         # Leave previously assigned slot_id's as they are.
         convert = {slot_id: slot_decrypt(cvid) 

@@ -7,7 +7,7 @@ import networkx as nx
 from allocatorunit import AllocatorUnit, Pair, Flow
 
 #----------------------------------------------------------------------------------------
-def generate_initial_solution(au: AllocatorUnit) -> AllocatorUnit:
+def generate_initial_solution(au: AllocatorUnit, _ = None) -> AllocatorUnit:
     # copy au
     au = copy.deepcopy(au)
 
@@ -32,7 +32,7 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
 
     # node allocation
     for vNode in au.allocating_vNode_list:
-        au.node_allocation(vNode.vNode_id, random.choice(list(au.empty_rNode_set)), False)
+        au.random_node_allocation(vNode.vNode_id, False)
     
     # make a list of pairs with their flow_id
     pairs = [(pair, flow.flow_id) 
@@ -251,6 +251,117 @@ def break_a_maximal_clique_and_repair(au: AllocatorUnit) -> AllocatorUnit:
         # apply the best path
         au.pair_allocation(pair.pair_id, path)
         au.flow_dict[flow_id].make_flow_graph(True)
+    
+    # slot allocation
+    au.greedy_slot_allocation()
+    
+    return au
+
+#----------------------------------------------------------------------------------------
+def initialize_by_avg_slot_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
+    for vNode in au.allocating_vNode_list:
+        assert vNode.rNode_id is None
+    for pair in au.allocating_pair_list:
+        assert pair.path is None
+
+    au = copy.deepcopy(au)
+
+    # node allocation
+    for vNode in au.allocating_vNode_list:
+        au.random_node_allocation(vNode.vNode_id, with_pair_allocation=False)
+    
+    # make a list of pairs with their flow_id
+    pairs = au.allocating_pair_list
+
+    # sorted by hop count
+    random.shuffle(pairs)
+    def pair_hops(pair: Pair) -> int:
+        src = pair.src_vNode.rNode_id
+        dst = pair.dst_vNode.rNode_id
+        return len(au.st_path_table[src][dst][0])
+    pairs.sort(key=pair_hops)
+    
+    for pair in pairs:
+        src = pair.src_vNode.rNode_id
+        dst = pair.dst_vNode.rNode_id
+        result = dict()
+
+        # calculate score for each path
+        for path in au.st_path_table[src][dst]:
+            au.pair_allocation(pair.pair_id, path)
+            au.greedy_slot_allocation(True)
+            score = au.get_avg_slot_num()
+            result[path] = (score, pair.owner.flow_graph.number_of_edges())
+        
+        # select the best path
+        best_score = min(result.values(), key=lambda item: item[0])[0]
+        best = {path: score for path, score in result.items() if score[0] == best_score}
+        best_score = min(best.values(), key=lambda item: item[1])[1]
+        best = [path for path, score in best.items() if score[1] == best_score]
+        path = random.choice(best)
+
+        # apply the best path
+        au.pair_allocation(pair.pair_id, path)
+    
+    # slot allocation
+    au.greedy_slot_allocation()
+    
+    return au
+
+#----------------------------------------------------------------------------------------
+def break_nodes_and_repair(au: AllocatorUnit) -> AllocatorUnit:
+    au = copy.deepcopy(au)
+
+    # select vNodes to be broken
+    selected_vNodes = random.sample(au.allocating_vNode_list, random.randint(1, len(au.allocating_vNode_list)))
+
+    # node deallocation
+    for vNode in selected_vNodes:
+        au.node_deallocation(vNode.vNode_id)
+
+    # make a list of broken pairs
+    broken_pairs = {pair.pair_id
+                   for vNode in selected_vNodes
+                   for pair in au.vNode_dict[vNode.vNode_id].pair_list}
+    broken_pairs = [au.pair_dict[pair_id] for pair_id in broken_pairs]
+    
+    # pair deallocation
+    for pair in broken_pairs:
+        au.pair_deallocation(pair.pair_id)
+    
+    # randomly node allocation
+    for vNode in selected_vNodes:
+        au.random_node_allocation(vNode.vNode_id, with_pair_allocation=False)
+
+    # sorted by hop count
+    random.shuffle(broken_pairs)
+    def pair_hops(pair: Pair) -> int:
+        src = pair.src_vNode.rNode_id
+        dst = pair.dst_vNode.rNode_id
+        return len(au.st_path_table[src][dst][0])
+    broken_pairs.sort(key=pair_hops)
+    
+    for pair in broken_pairs:
+        src = pair.src_vNode.rNode_id
+        dst = pair.dst_vNode.rNode_id
+        result = dict()
+
+        # calculate score for each path
+        for path in au.st_path_table[src][dst]:
+            au.pair_allocation(pair.pair_id, path)
+            au.greedy_slot_allocation(True)
+            score = au.get_avg_slot_num()
+            result[path] = (score, pair.owner.flow_graph.number_of_edges())
+        
+        # select the best path
+        best_score = min(result.values(), key=lambda item: item[0])[0]
+        best = {path: score for path, score in result.items() if score[0] == best_score}
+        best_score = min(best.values(), key=lambda item: item[1])[1]
+        best = [path for path, score in best.items() if score[1] == best_score]
+        path = random.choice(best)
+
+        # apply the best path
+        au.pair_allocation(pair.pair_id, path)
     
     # slot allocation
     au.greedy_slot_allocation()

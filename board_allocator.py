@@ -22,6 +22,7 @@ import alns
 from nsga2 import NSGA2
 from ncga import NCGA
 from spea2 import SPEA2
+import sa
 
 # for debug
 from deap import tools
@@ -198,9 +199,9 @@ class BoardAllocator:
                     for p in comm_tmp]
         
         # make Pairs
-        flow2pairs = {flow_id: [Pair(self.__generate_pair_id(), p[0], p[1]) 
+        flow2pairs = {flow_id: [Pair(self.__generate_pair_id(), p[0], p[1], flow_id) 
                               for p in comm_tmp if p[2] == flow_id]
-                    for flow_id in label2flow_id.values()}
+                      for flow_id in label2flow_id.values()}
         pair_list = [pair for pairs in flow2pairs.values() for pair in pairs]
         
         # make Flows
@@ -215,9 +216,11 @@ class BoardAllocator:
         
         # set Pair.src_vNode or Pair.dst_vNode
         vNode_dict = {vNode.vNode_id: vNode for vNode in vNode_list}
+        flow_dict = {flow.flow_id: flow for flow in flow_list}
         for pair in pair_list:
             pair.src_vNode = vNode_dict[pair.src]
             pair.dst_vNode = vNode_dict[pair.dst]
+            pair.owner = flow_dict[pair.flow_id]
 
         # make App
         app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list)
@@ -279,6 +282,26 @@ class BoardAllocator:
     ##-----------------------------------------------------------------------------------
     def alns(self, execution_time: float):
         self.au = alns.alns(self.au, execution_time)
+        self.au.apply()
+
+    ##-----------------------------------------------------------------------------------
+    def alns_test(self, execution_time: float):
+        self.au = alns.alns_test(self.au, execution_time)
+        self.au.apply()
+    
+    ##-----------------------------------------------------------------------------------
+    def alns_test2(self, execution_time: float):
+        self.au = alns.alns_test2(self.au, execution_time)
+        self.au.apply()
+
+    ##-----------------------------------------------------------------------------------
+    def alns_assist(self, execution_time: float):
+        self.au = alns.alns_assist(self.au, execution_time)
+        self.au.apply()
+    
+    ##-----------------------------------------------------------------------------------
+    def sa(self, execution_time: float):
+        self.au = sa.sa(self.au, execution_time)
         self.au.apply()
     
     ##-----------------------------------------------------------------------------------
@@ -462,14 +485,18 @@ class BoardAllocator:
 if __name__ == '__main__':
     args = parser()
     clean_dir(FIG_DIR)
-    #actor = BoardAllocator(args.t, args.me)
-    def main():
-        actor = BoardAllocator.load('sample.pickle')
-        actor.load_app(args.c)
-        actor.two_opt(args.m * 60)
-        #actor.dump('sample.pickle')
-    import cProfile
-    from pstats import SortKey
-    cProfile.run('main()', sort=SortKey.CUMULATIVE)
+    actor = BoardAllocator(args.t, args.me)
+    actor.load_app(args.c)
+    actor.alns_test(args.m * 60)
+    
+    # profiler
+    #def main():
+    #    actor = BoardAllocator.load('sample.pickle')
+    #    actor.load_app(args.c)
+    #    actor.two_opt(args.m * 60)
+    #    #actor.dump('sample.pickle')
+    #import cProfile
+    #from pstats import SortKey
+    #cProfile.run('main()', sort=SortKey.CUMULATIVE)
     
     print(" ### OVER ### ")
