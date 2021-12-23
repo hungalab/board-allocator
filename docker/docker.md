@@ -9,6 +9,8 @@ Basic operations are described in the Makefile.
 - run the docker image
 - mount the parent directory and below under the virtual environment
 - create a user with your local pc's user id and group id (i.e. the owner of the file added/edited in the container will be the same as when executed on the local pc)
-### make runwdisp
 - enable X forwarding
+### make nodisp
+- not enabling X forwarding
 - other is same as "make start"
+- maybe it won't work

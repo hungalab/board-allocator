@@ -14,10 +14,10 @@ build:
 	docker build -t $(IMAGE_NAME) .
 
 start:
-	docker run $(DOCKER_RUN_OPTIONS) $(DOCKER_RUN_VOLUMES) $(DOCKER_RUN_ENVS) $(IMAGE_NAME)
-
-runwdisp:
 	docker run $(DOCKER_RUN_OPTIONS) $(DOCKER_RUN_VOLUMES) $(DOCKER_RUN_ENVS) $(DOCKER_RUN_DISPLAY) $(IMAGE_NAME)
+
+nodisp:
+	docker run $(DOCKER_RUN_OPTIONS) $(DOCKER_RUN_VOLUMES) $(DOCKER_RUN_ENVS) $(IMAGE_NAME)
 
 exec:
 	docker exec -it $(IMAGE_NAME) bash
