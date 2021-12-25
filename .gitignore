@@ -15,5 +15,6 @@ cxtest.py
 figure/*
 save/*
 .vscode/
+build/
 
 __pycache__
