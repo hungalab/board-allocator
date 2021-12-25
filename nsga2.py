@@ -76,6 +76,7 @@ class NSGA2(GA):
                               "avg": record["avg"][i], "max": record["max"][i]}
                   for i, eval_name in enumerate(Evaluator.eval_list())}
         self.logbook.record(gen=0, evals=len(invalid_ind), dups='N/A', **record)
+        print(self.logbook.stream)
 
         while time.time() - start_time < exectution_time:
             # uppdate generation number
@@ -102,8 +103,11 @@ class NSGA2(GA):
                               [1] * (len(parents) // 2))))
 
             # offsprings' mutation
-            offsprings += list(itertools.chain.from_iterable(\
-                          self.toolbox.map(self.toolbox.mutate, pop, [1] * len(pop))))
+            length = min(process_num, tournament_max_length)
+            selected: list[Individual]
+            selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4))
+            offsprings += list(itertools.chain.from_iterable(
+                          self.toolbox.map(self.toolbox.mutate, selected, [1] * length)))
             
             # 2-opt execution
             #length = min(process_num, tournament_max_length)
@@ -149,6 +153,9 @@ class NSGA2(GA):
             record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]}
                       for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, **record)
+            print(self.logbook.stream)
+        
+        print(time.time() - start_time)
 
         if process_num != 1:
             pool.close()

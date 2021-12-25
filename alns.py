@@ -24,6 +24,9 @@ def alns(au: AllocatorUnit,
     best = oplib.generate_initial_solution(au)
     best_slot_num = best.get_avg_slot_num()
     best_total_hops = best.get_total_communication_flow_edges()
+    print("{:>6}th loop: slots: {}, "
+                             "hops: {}".format(loops, best_slot_num, 
+                                                      best_total_hops))
 
     while time.time() - start_time < max_execution_time:
         loops += 1
@@ -36,7 +39,7 @@ def alns(au: AllocatorUnit,
         slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:
-            updatelog.append("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
+            print("{:>6}th loop: update for slot decrease (slots: {} -> {}, "
                              "hops: {} -> {})".format(loops, best_slot_num, slot_num, 
                                                       best_total_hops, total_hops))
             best = au
@@ -44,7 +47,7 @@ def alns(au: AllocatorUnit,
             best_total_hops = total_hops
             cnt_slot_change += 1
         elif (slot_num == best_slot_num) and (total_hops < best_total_hops):
-            updatelog.append("{:>6}th loop: update for total hops decrease "
+            print("{:>6}th loop: update for total hops decrease "
                              "(slots: {} -> {}, hops: {} -> {})"
                              .format(loops, best_slot_num, slot_num, 
                                      best_total_hops, total_hops))

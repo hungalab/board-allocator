@@ -165,7 +165,7 @@ def mut_swap(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
     return ind,
 
 #----------------------------------------------------------------------------------------
-def mut_clique(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
+def mut_path_realloc(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]:
 
     if not 0 <= mut_pb <= 1 :
         raise ValueError("Specify a value between 0 and 1.")
@@ -173,7 +173,7 @@ def mut_clique(individual: Individual, mut_pb: float = 1.0) -> tuple[Individual]
     ind = copy.deepcopy(individual)
     
     if random.random() < mut_pb:
-        ind = oplib.break_a_maximal_clique_and_repair(ind)
+        ind = oplib.break_and_repair2(ind)
         del ind.fitness.values
 
     return ind,
@@ -230,7 +230,7 @@ class GA:
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         self.toolbox.register("evaluate", Evaluator.evaluate)
         self.toolbox.register("mate", cx_uniform)
-        self.toolbox.register("mutate", mut_clique)
+        self.toolbox.register("mutate", mut_path_realloc)
         self.toolbox.register("select", tools.selTournamentDCD)
 
         # statistics settings

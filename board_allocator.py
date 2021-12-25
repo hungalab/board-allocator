@@ -1,6 +1,7 @@
 from __future__ import annotations
 import argparse
 import json
+import sys
 import os
 import os.path
 import shutil
@@ -27,6 +28,7 @@ import sa
 # for debug
 from deap import tools
 
+sys.setrecursionlimit(100000)
 FIG_DIR = 'figure'
 #----------------------------------------------------------------------------------------
 def clean_dir(path: str):
@@ -441,8 +443,7 @@ class BoardAllocator:
                                  path: str 
                                   = os.path.join(FIG_DIR, (default_filename()+'.png'))):
         ## settings for position
-        core_node_num = len({i for i, module in self.au.topology.nodes(data="module") 
-                             if module == "core"})
+        core_node_num = len(self.au.core_nodes)
         pos = {i: (-((i % core_node_num) // 4) * 4 - (i // core_node_num), 
                    ((i % core_node_num) % 4) * 4 + (i // core_node_num)) 
                for i in self.au.topology.nodes}
