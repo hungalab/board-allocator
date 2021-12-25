@@ -7,6 +7,7 @@ from typing import Optional, Iterable
 import networkx as nx
 
 from mcc import mcc
+from cpp_modules import crossing_flows
 
 #----------------------------------------------------------------------------------------
 def slot_encrypt(slot_id: int) -> int:
@@ -368,17 +369,23 @@ class AllocatorUnit:
                     self.pair_deallocation(pair.pair_id)
     
     ##-----------------------------------------------------------------------------------
+    def crossing_flows(self) -> set[tuple[int, int]]:
+        flows = [(f.cvid, f.flow_graph.edges) for f in self.flow_dict.values()]
+        return crossing_flows(flows)
+        #return {(fi.cvid, fj.cvid)
+        #        for fi in self.flow_dict.values()
+        #        for fj in self.flow_dict.values()
+        #        if (fi.cvid < fj.cvid) 
+        #        and (fi.flow_graph.edges & fj.flow_graph.edges != set())}
+    
+    ##-----------------------------------------------------------------------------------
     def find_maximal_cliques_of_slot_graph(self) -> list[list[int]]:
         # construct graphs of flows in allocating
         for flow in self.flow_dict.values():
             if flow.allocating:
                 flow.make_flow_graph()
         # find maximal cliques
-        edges = {(fi.cvid, fj.cvid)
-                 for i, fi in self.flow_dict.items()
-                 for j, fj in self.flow_dict.items()
-                 if i < j and 
-                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        edges = self.crossing_flows()
         node_set = {flow.cvid for flow in self.flow_dict.values()}
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
@@ -393,11 +400,7 @@ class AllocatorUnit:
                 flow.make_flow_graph()
         
         # get mcc
-        edges = {(fi.cvid, fj.cvid)
-                 for i, fi in self.flow_dict.items()
-                 for j, fj in self.flow_dict.items()
-                 if i < j and 
-                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        edges = self.crossing_flows()
         node_set = {flow.cvid for flow in self.flow_dict.values()}
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
@@ -435,11 +438,7 @@ class AllocatorUnit:
                 flow.make_flow_graph(None_acceptance)
         
         # get coloring
-        edges = {(fi.cvid, fj.cvid)
-                 for i, fi in self.flow_dict.items()
-                 for j, fj in self.flow_dict.items()
-                 if i < j and 
-                 nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() != 0}
+        edges = self.crossing_flows()
         node_set = {flow.cvid for flow in self.flow_dict.values()}
         graph = nx.Graph()
         graph.add_nodes_from(node_set)
@@ -505,6 +504,10 @@ class AllocatorUnit:
                     for flow in self.flow_dict.values()])
     
     ##-----------------------------------------------------------------------------------
+    def get_crossing_flows_num(self) -> int:
+        return len(self.crossing_flows())
+
+    ##-----------------------------------------------------------------------------------
     def board_num_to_be_routed(self) -> int:
         routed_nodes = set().union(*[pair.path for pair in self.pair_dict.values()])
         return len(routed_nodes - self.core_nodes)
@@ -564,6 +567,7 @@ class AllocatorUnit:
         for flow in all_flow_list:
             print("flow_id: {}".format(flow.flow_id))
             print("pair_id_list: {}".format([pair.pair_id for pair in flow.pair_list]))
+            print("slot_id: {}".format(flow.slot_id))
             print(" --------------------------------------------------- ")
 
         print("\n ##### Pair ##### ")
