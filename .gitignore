@@ -14,5 +14,6 @@ test.png
 cxtest.py
 figure/*
 save/*
+.vscode/
 
 __pycache__
