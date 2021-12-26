@@ -11,10 +11,7 @@ public:
     int cvid;
     std::set<std::pair<int, int>> edges;
 
-    Flow(int cvid, std::set<std::pair<int, int>> edges) {
-        this->cvid = cvid;
-        this->edges = edges;
-    }
+    Flow(int c, std::set<std::pair<int, int>>& e): cvid(c), edges(e) { }
 };
 
 class Vdeg {
@@ -22,12 +19,9 @@ public:
     int index;
     int deg;
 
-    Vdeg(int index, int deg) {
-        this->index = index;
-        this->deg = deg;
-    }
+    Vdeg(int i, int d): index(i), deg(d) { }
 
-    bool operator<(const Vdeg &v) {
+    bool operator<(const Vdeg& v) {
         return this->deg < v.deg;
     }
 };
@@ -95,8 +89,8 @@ static PyObject* cpp_crossing_flows(PyObject*, PyObject* args) {
     // create edge set
     PyObject* crossings = PySet_New(NULL);
     std::vector<Flow>::iterator i_iter, j_iter;
-    for (i_iter = flows.begin(); i_iter != flows.end(); i_iter++) {
-        for (j_iter = std::next(i_iter); j_iter != flows.end(); j_iter++) {
+    for (i_iter = flows.begin(); i_iter != flows.end(); ++i_iter) {
+        for (j_iter = std::next(i_iter); j_iter != flows.end(); ++j_iter) {
             std::set<std::pair<int, int>> intersection_set, i_set, j_set;
             i_set = i_iter->edges;
             j_set = j_iter->edges;
@@ -221,7 +215,7 @@ static PyObject* cpp_crossings_for_a_flow(PyObject*, PyObject* args) {
     // create crossing flow_id set
     std::unordered_set<int> crossings;
     std::vector<Flow>::iterator iter;
-    for (iter = flows.begin(); iter != flows.end(); iter++) {
+    for (iter = flows.begin(); iter != flows.end(); ++iter) {
         if (target_flow->cvid != iter->cvid) {
             std::set<std::pair<int, int>> intersection_set;
             std::set_intersection((target_flow->edges).begin(), (target_flow->edges).end(), 
@@ -299,8 +293,8 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
     // create graph
     std::unordered_map<int, std::unordered_set<int>> graph;
     std::vector<Flow>::iterator i_iter, j_iter;
-    for (i_iter = flows.begin(); i_iter != flows.end(); i_iter++) {
-        for (j_iter = std::next(i_iter); j_iter != flows.end(); j_iter++) {
+    for (i_iter = flows.begin(); i_iter != flows.end(); ++i_iter) {
+        for (j_iter = std::next(i_iter); j_iter != flows.end(); ++j_iter) {
             // make adj set if null
             if (graph.find(i_iter->cvid) == graph.end()) {
                 std::unordered_set<int> empty_set{};
@@ -330,7 +324,7 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
     // make vertex index list sorted by degree
     std::vector<Vdeg> vdeg_list;
     std::unordered_map<int, std::unordered_set<int>>::iterator iter;
-    for (iter = graph.begin(); iter != graph.end(); iter++) {
+    for (iter = graph.begin(); iter != graph.end(); ++iter) {
         Vdeg v(iter->first, (iter->second).size());
         vdeg_list.push_back(v);
     }
@@ -339,17 +333,17 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
     // Welsh-Powell graph coloring algorithm
     std::unordered_map<int, int> coloring;
     std::vector<Vdeg>::iterator vdeg_iter;
-    for (vdeg_iter = vdeg_list.begin(); vdeg_iter != vdeg_list.end(); vdeg_iter++) {
+    for (vdeg_iter = vdeg_list.begin(); vdeg_iter != vdeg_list.end(); ++vdeg_iter) {
         std::unordered_set<int> neighbour_colors;
         std::unordered_set<int> adj = graph[vdeg_iter->index];
         std::unordered_set<int>::iterator viter;
-        for (viter = adj.begin(); viter != adj.end(); viter++) {
+        for (viter = adj.begin(); viter != adj.end(); ++viter) {
             if (coloring.find(*viter) != coloring.end()) {
                 neighbour_colors.insert(coloring[*viter]);
             }
         }
         int color_id;
-        for (color_id = 0; ; color_id++) {
+        for (color_id = 0; ; ++color_id) {
             if (neighbour_colors.find(color_id) == neighbour_colors.end()) {
                 break;
             }
@@ -360,7 +354,7 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
     // convert to PyObject
     PyObject* pycoloring = PyDict_New();
     std::unordered_map<int, int>::iterator citer;
-    for (citer = coloring.begin(); citer != coloring.end(); citer++) {
+    for (citer = coloring.begin(); citer != coloring.end(); ++citer) {
         PyDict_SetItem(pycoloring, Py_BuildValue("i", citer->first), Py_BuildValue("i", citer->second));
     }
 
