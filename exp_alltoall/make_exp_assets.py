@@ -9,7 +9,7 @@ matplotlib.use('GTK3Agg')
 import matplotlib.pyplot as plt
 from board_allocator import BoardAllocator
 
-SIZES = [2, 3, 4, 5, 6, 7, 8, 9, 10]
+SIZES = [3, 4, 5, 6, 7, 8]
 SCRIPT_DIR_NAME = os.path.dirname(__file__)
 MULTI_UNICAST_DIR = os.path.join(SCRIPT_DIR_NAME, 'multiple_unicast')
 BROADCAST_DIR = os.path.join(SCRIPT_DIR_NAME,'broadcast')
