@@ -12,6 +12,7 @@ export HOME=/home/$LOCAL_NAME
 /usr/sbin/gosu $USER_NAME ln -s /usr/local/work /home/$LOCAL_NAME/work
 /usr/sbin/gosu $USER_NAME ln -s /usr/local/.Xauthority $HOME/.Xauthority
 cd $HOME/work
+/usr/sbin/gosu $USER_NAME python3 setup.py install --user
 echo "Starting with `id $USER_NAME -u -n`(UID: `id $USER_NAME -u`, GID: `id $USER_NAME -g`(`id $USER_NAME -g -n`))"
 echo $@
 exec gosu $USER_NAME "$@"

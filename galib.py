@@ -26,6 +26,10 @@ class Individual(AllocatorUnit):
         super().__init__(seed)
         self.fitness = Fitness()
 
+##-----------------------------------------------------------------------------------
+def ind_eq(a: Individual, b: Individual) -> bool:
+    return a._hasher() == b._hasher()
+
 #----------------------------------------------------------------------------------------
 def mask_generator(sorted_vNode_id_list: list[int]
                    ) -> tuple[dict[int, int], dict[int, int]]:
@@ -113,6 +117,7 @@ def cx_uniform(parent0: Individual, parent1: Individual, mate_pb: float = 1.0
                                   for vNode_id, bit in mask0.items()}
         counter = collections.Counter(list(next_child0_rNode_dict.values()))
         for key, count in counter.items():
+            assert count <= 2
             if count == 2:
                 selected = random.randint(0, 1)
                 current = 0

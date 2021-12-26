@@ -62,9 +62,6 @@ def initialize_by_assist(au: AllocatorUnit, _ = None) -> AllocatorUnit:
             au.pair_allocation(pair.pair_id, path)
             au.flow_dict[flow_id].make_flow_graph(True)
             fg = au.flow_dict[flow_id].flow_graph
-            #score = len({f.cvid for i, f in au.flow_dict.items()
-            #             if (fg.edges & f.flow_graph.edges != set())
-            #             and (i != flow_id)})
             flows = [(f.cvid, f.flow_graph.edges) for f in au.flow_dict.values()]
             score = crossings_for_a_flow((flow_id, fg.edges), flows)
             result[path] = (score, fg.number_of_edges())

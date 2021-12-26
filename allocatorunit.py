@@ -7,7 +7,7 @@ from typing import Optional, Iterable
 import networkx as nx
 
 from mcc import mcc
-from cpp_modules import crossing_flows
+from cpp_modules import crossing_flows, slot_allocation
 
 #----------------------------------------------------------------------------------------
 def slot_encrypt(slot_id: int) -> int:
@@ -372,11 +372,6 @@ class AllocatorUnit:
     def crossing_flows(self) -> set[tuple[int, int]]:
         flows = [(f.cvid, f.flow_graph.edges) for f in self.flow_dict.values()]
         return crossing_flows(flows)
-        #return {(fi.cvid, fj.cvid)
-        #        for fi in self.flow_dict.values()
-        #        for fj in self.flow_dict.values()
-        #        if (fi.cvid < fj.cvid) 
-        #        and (fi.flow_graph.edges & fj.flow_graph.edges != set())}
     
     ##-----------------------------------------------------------------------------------
     def find_maximal_cliques_of_slot_graph(self) -> list[list[int]]:
@@ -438,12 +433,8 @@ class AllocatorUnit:
                 flow.make_flow_graph(None_acceptance)
         
         # get coloring
-        edges = self.crossing_flows()
-        node_set = {flow.cvid for flow in self.flow_dict.values()}
-        graph = nx.Graph()
-        graph.add_nodes_from(node_set)
-        graph.add_edges_from(edges)
-        coloring: dict[int, int] = nx.coloring.greedy_color(graph, strategy='largest_first')
+        flows = [(f.cvid, f.flow_graph.edges) for f in self.flow_dict.values()]
+        coloring: dict[int, int] = slot_allocation(flows)
         
         # Leave previously assigned slot_id's as they are.
         convert = {slot_id: slot_decrypt(cvid) 

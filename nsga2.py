@@ -9,7 +9,7 @@ from deap import tools
 #import networkx as nx
 
 # my library
-from galib import GA, Individual, my_multiprocessing_map, mate_or_mutate
+from galib import GA, Individual, my_multiprocessing_map, ind_eq
 from evaluator import Evaluator
 import alns
 from allocatorunit import AllocatorUnit
@@ -47,7 +47,7 @@ class NSGA2(GA):
         elif process_num == 1:
             self.toolbox.register("map", map)
 
-        hall_of_fame = tools.ParetoFront()
+        hall_of_fame = tools.ParetoFront(similar=ind_eq)
         gen = 0
 
         # start timer
