@@ -32,8 +32,11 @@ def alns(au: AllocatorUnit,
         loops += 1
 
         # break and repair
-        target_node_num = random.randrange(1, p_range)
-        au = oplib.break_and_repair(best, target_node_num)
+        if random.random() < (1 - ((time.time() - start_time) / max_execution_time)):
+            target_node_num = random.randrange(1, p_range)
+            au = oplib.break_and_repair(best, target_node_num)
+        else:
+            au = oplib.break_and_repair2(best)
 
         # evaluation
         slot_num = au.get_avg_slot_num()
