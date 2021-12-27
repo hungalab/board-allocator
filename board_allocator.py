@@ -288,6 +288,7 @@ class BoardAllocator:
     def alns(self, execution_time: float, for_exp: bool = False):
         self.au = alns.alns(self.au, execution_time, for_exp=for_exp)
         self.au.apply()
+        return self.au
 
     ##-----------------------------------------------------------------------------------
     def alns_test(self, execution_time: float):
@@ -367,6 +368,7 @@ class BoardAllocator:
 
         self.au: Individual = hof[index]
         self.au.apply()
+        return self.au
 
     ##-----------------------------------------------------------------------------------
     def show_topology_file(self):

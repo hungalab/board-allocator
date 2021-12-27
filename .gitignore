@@ -15,6 +15,7 @@ figure/*
 save/*
 .vscode/
 build/
+*.rpt
 
 test*.py
 
