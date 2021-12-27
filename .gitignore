@@ -8,7 +8,6 @@
 output/*
 *.txt
 *.png
-!fic-topo-file-cross.txt
 test.png
 *.pickle
 cxtest.py
@@ -16,5 +15,10 @@ figure/*
 save/*
 .vscode/
 build/
+
+!fic-topo-file-cross.txt
+!exp_random/fft_16.txt
+!exp_random/a2a_16.txt
+!exp_random/fork_16.txt
 
 __pycache__
