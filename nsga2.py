@@ -4,13 +4,14 @@ import multiprocessing
 import itertools
 from typing import Optional
 import random
+from functools import partial
 
 from deap import tools
 
 #import networkx as nx
 
 # my library
-from galib import GA, Individual, my_multiprocessing_map, ind_hof_eq
+from galib import GA, Individual, my_multiprocessing_map, ind_hof_eq, mate_or_mutate
 from evaluator import Evaluator
 import alns
 from allocatorunit import AllocatorUnit
@@ -19,7 +20,7 @@ from allocatorunit import AllocatorUnit
 class NSGA2(GA):
     def __init__(self, 
                  seed: AllocatorUnit | bytes | str, 
-                 mate_pb: float = 1, 
+                 mate_pb: float = 0.8, 
                  mutation_pb: float = 0.2, 
                  archive_size: int = 40, 
                  offspring_size: Optional[int] = None):
@@ -34,6 +35,7 @@ class NSGA2(GA):
             self.offspring_size = offspring_size
         else:
             raise ValueError("offspring_size must be a multiple of 4.")
+        self.ga_op = partial(partial(mate_or_mutate, mate_pb=self.mate_pb, mate=self.toolbox.mate, mutate=self.toolbox.mutate,))
     
     ##-----------------------------------------------------------------------------------
     def run(self, 
@@ -93,32 +95,10 @@ class NSGA2(GA):
                 else:
                     length = self.offspring_size - (tournament_max_length * max_loop_index)
                 parents += tools.selTournamentDCD(pop, length)
-            
 
-            #offsprings = list(itertools.chain.from_iterable(
-            #              map(mate_or_mutate, mate_array, mutate_array, 
-            #                  parents[::2], parents[1::2], mate_pb_array)))
-            offsprings: list[Individual]
             offsprings = list(itertools.chain.from_iterable(
-                          self.toolbox.map(self.toolbox.mate, parents[::2], parents[1::2], 
-                              [1] * (len(parents) // 2))))
+                              self.toolbox.map(self.ga_op, parents[::2], parents[1::2])))
 
-            # offsprings' mutation
-            length = [random.random() < self.mutation_pb for _ in pop].count(True)
-            selected: list[Individual]
-            selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4))
-            offsprings += list(itertools.chain.from_iterable(
-                          self.toolbox.map(self.toolbox.mutate, selected, [1] * length)))
-            
-            # 2-opt execution
-            #length = min(process_num, tournament_max_length)
-            #selected: list[Individual]
-            #selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4))
-            #selected = self.toolbox.map(alns.alns_test, selected, 
-            #                            [1] * length, [False] * length)
-            #for ind in selected:
-            #    del ind.fitness.values
-            #offsprings += selected
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
             fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
@@ -154,8 +134,6 @@ class NSGA2(GA):
                       for i, eval_name in enumerate(Evaluator.eval_list())}
             self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, hofs=len(hall_of_fame), **record)
             print(self.logbook.stream)
-        
-        print(time.time() - start_time)
 
         if process_num != 1:
             pool.close()

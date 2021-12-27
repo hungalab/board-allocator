@@ -195,13 +195,13 @@ def my_multiprocessing_map(pool: multiprocessing.Pool,
     return pool.map(partial(wrapper, func), [elements for elements in zip(*iterable)])
 
 #----------------------------------------------------------------------------------------
-def mate_and_mutate(mate: Callable[[Individual, Individual, float], 
-                                   tuple[Individual, Individual]], 
-                    mutate: Callable[[Individual, float], tuple[Individual]], 
-                    parent0: Individual, 
+def mate_and_mutate(parent0: Individual, 
                     parent1: Individual, 
                     mate_pb: float, 
-                    mut_pb: float
+                    mut_pb: float,
+                    mate: Callable[[Individual, Individual, float], 
+                                   tuple[Individual, Individual]], 
+                    mutate: Callable[[Individual, float], tuple[Individual]]
                     ) -> tuple[Individual, Individual]:
     child0, child1 = mate(parent0, parent1, mate_pb)
     child0, = mutate(child0, mut_pb)
@@ -209,12 +209,12 @@ def mate_and_mutate(mate: Callable[[Individual, Individual, float],
     return child0, child1
 
 #----------------------------------------------------------------------------------------
-def mate_or_mutate(mate: Callable[[Individual, Individual, float], 
-                                   tuple[Individual, Individual]], 
-                   mutate: Callable[[Individual, float], tuple[Individual]], 
-                   parent0: Individual, 
+def mate_or_mutate(parent0: Individual, 
                    parent1: Individual, 
-                   mate_pb: float
+                   mate_pb: float,
+                   mate: Callable[[Individual, Individual, float], 
+                                   tuple[Individual, Individual]], 
+                   mutate: Callable[[Individual, float], tuple[Individual]]
                    ) -> tuple[Individual, Individual]:
     if random.random() <= mate_pb:
         child0, child1 = mate(parent0, parent1, 1)
