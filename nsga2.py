@@ -3,13 +3,14 @@ import time
 import multiprocessing
 import itertools
 from typing import Optional
+import random
 
 from deap import tools
 
 #import networkx as nx
 
 # my library
-from galib import GA, Individual, my_multiprocessing_map, ind_eq
+from galib import GA, Individual, my_multiprocessing_map, ind_hof_eq
 from evaluator import Evaluator
 import alns
 from allocatorunit import AllocatorUnit
@@ -18,8 +19,8 @@ from allocatorunit import AllocatorUnit
 class NSGA2(GA):
     def __init__(self, 
                  seed: AllocatorUnit | bytes | str, 
-                 mate_pb: float = 0.7, 
-                 mutation_pb: float = 0.3, 
+                 mate_pb: float = 1, 
+                 mutation_pb: float = 0.2, 
                  archive_size: int = 40, 
                  offspring_size: Optional[int] = None):
         super().__init__(seed)
@@ -47,7 +48,7 @@ class NSGA2(GA):
         elif process_num == 1:
             self.toolbox.register("map", map)
 
-        hall_of_fame = tools.ParetoFront(similar=ind_eq)
+        hall_of_fame = tools.ParetoFront(similar=ind_hof_eq)
         gen = 0
 
         # start timer
@@ -75,7 +76,7 @@ class NSGA2(GA):
         record = {eval_name: {"min": record["min"][i], 
                               "avg": record["avg"][i], "max": record["max"][i]}
                   for i, eval_name in enumerate(Evaluator.eval_list())}
-        self.logbook.record(gen=0, evals=len(invalid_ind), dups='N/A', **record)
+        self.logbook.record(gen=0, evals=len(invalid_ind), dups='N/A', hofs='N/A', **record)
         print(self.logbook.stream)
 
         while time.time() - start_time < exectution_time:
@@ -103,7 +104,7 @@ class NSGA2(GA):
                               [1] * (len(parents) // 2))))
 
             # offsprings' mutation
-            length = min(process_num, tournament_max_length)
+            length = [random.random() < self.mutation_pb for _ in pop].count(True)
             selected: list[Individual]
             selected = tools.selTournamentDCD(pop, 4 * ((length + 3) // 4))
             offsprings += list(itertools.chain.from_iterable(
@@ -118,7 +119,6 @@ class NSGA2(GA):
             #for ind in selected:
             #    del ind.fitness.values
             #offsprings += selected
-            
             # evatuate offsprings
             invalid_ind = [ind for ind in offsprings if not ind.fitness.valid]
             fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
@@ -152,7 +152,7 @@ class NSGA2(GA):
             record = self.stats.compile(pop)
             record = {eval_name: {"min": record["min"][i], "avg": record["avg"][i], "max": record["max"][i]}
                       for i, eval_name in enumerate(Evaluator.eval_list())}
-            self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, **record)
+            self.logbook.record(gen=gen, evals=len(invalid_ind), dups=dups, hofs=len(hall_of_fame), **record)
             print(self.logbook.stream)
         
         print(time.time() - start_time)

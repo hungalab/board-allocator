@@ -14,6 +14,9 @@ import pickle
 
 import networkx as nx
 import matplotlib
+from evaluator import Evaluator
+
+from galib import Individual
 matplotlib.use('GTK3Agg')
 import matplotlib.pyplot as plt
 
@@ -354,8 +357,14 @@ class BoardAllocator:
     def select_from_hof(self, hof: tools.HallOfFame, index: Optional[int] = None):
         if index is None:
             index = 0
+            best = hof[index].fitness.values[0] * Evaluator.weights()[0]
+            for i, ind in enumerate(hof):
+                ind: Individual
+                score = ind.fitness.values[0] * Evaluator.weights()[0]
+                if score > best:
+                    index = i
 
-        self.au = hof[index]
+        self.au: Individual = hof[index]
         self.au.apply()
 
     ##-----------------------------------------------------------------------------------

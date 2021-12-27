@@ -26,9 +26,10 @@ class Individual(AllocatorUnit):
         super().__init__(seed)
         self.fitness = Fitness()
 
-##-----------------------------------------------------------------------------------
-def ind_eq(a: Individual, b: Individual) -> bool:
-    return a._hasher() == b._hasher()
+##---------------------------------------------------------------------------------------
+def ind_hof_eq(a: Individual, b: Individual) -> bool:
+    return (a._mini_hasher() == b._mini_hasher()) \
+           and (a.fitness.values == b.fitness.values)
 
 #----------------------------------------------------------------------------------------
 def mask_generator(sorted_vNode_id_list: list[int]
@@ -246,6 +247,6 @@ class GA:
 
         # logbook settings
         self.logbook = tools.Logbook()
-        self.logbook.header = ["gen", "evals", "dups"] + Evaluator.eval_list()
+        self.logbook.header = ["gen", "evals", "dups", "hofs"] + Evaluator.eval_list()
         for eval_name in Evaluator.eval_list():
             self.logbook.chapters[eval_name].header = "min", "avg", "max"

@@ -140,6 +140,14 @@ class App:
                      tuple(pair._hasher() for pair in self.pair_list)))
     
     ##-----------------------------------------------------------------------------------
+    def _mini_hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique()
+        '''
+        return hash((self.app_id, 
+                     tuple(vNode._hasher() for vNode in self.vNode_list)))
+    
+    ##-----------------------------------------------------------------------------------
     def __eq__(self, other: App) -> bool:
         return (self.app_id == other.app_id) \
                and (self.vNode_list == other.vNode_list) \
@@ -578,6 +586,15 @@ class AllocatorUnit:
         return hash((tuple(self.topology.nodes), 
                      tuple(self.topology.edges),
                      tuple(app._hasher() for app in self.app_dict.values())))
+    
+    ##-----------------------------------------------------------------------------------
+    def _mini_hasher(self) -> int:
+        '''
+        This method is assumed to be used ONLY for AllocatorUnit.unique()
+        '''
+        return hash((tuple(self.topology.nodes), 
+                     tuple(self.topology.edges),
+                     tuple(app._mini_hasher() for app in self.app_dict.values())))
     
     ##-----------------------------------------------------------------------------------
     @staticmethod
