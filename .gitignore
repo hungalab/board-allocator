@@ -16,6 +16,9 @@ save/*
 .vscode/
 build/
 
+test*.py
+
+!testcppmodule.py
 !fic-topo-file-cross.txt
 !exp_random/fft_16.txt
 !exp_random/a2a_16.txt

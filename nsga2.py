@@ -41,7 +41,8 @@ class NSGA2(GA):
     def run(self, 
             exectution_time: float, 
             process_num: int = 1, 
-            eliminate_dups:bool = True
+            eliminate_dups: bool = True, 
+            for_exp: bool = False
             ) -> tools.ParetoFront:
         # multiprocessing settings
         if process_num != 1:
@@ -125,6 +126,9 @@ class NSGA2(GA):
             pop += rand_pop
             invalid_ind += rand_pop
 
+            if for_exp and (time.time() - start_time > exectution_time):
+                break
+            
             # update hall of fame
             hall_of_fame.update(pop)
 

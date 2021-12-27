@@ -9,7 +9,8 @@ from allocatorunit import AllocatorUnit
 #----------------------------------------------------------------------------------------
 def alns(au: AllocatorUnit, 
          max_execution_time: float, 
-         enable_log: bool = True) -> AllocatorUnit:
+         enable_log: bool = True, 
+         for_exp: bool = False) -> AllocatorUnit:
     # probability changer
     p_range = min(2, len(au.allocating_vNode_list)) + 1 # normalization value
 
@@ -39,6 +40,8 @@ def alns(au: AllocatorUnit,
             au = oplib.break_and_repair2(best)
 
         # evaluation
+        if for_exp and (time.time() - start_time > max_execution_time):
+            break
         slot_num = au.get_avg_slot_num()
         total_hops = au.get_total_communication_flow_edges()
         if slot_num < best_slot_num:

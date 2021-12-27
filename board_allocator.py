@@ -285,8 +285,8 @@ class BoardAllocator:
         self.au.apply()
     
     ##-----------------------------------------------------------------------------------
-    def alns(self, execution_time: float):
-        self.au = alns.alns(self.au, execution_time)
+    def alns(self, execution_time: float, for_exp: bool = False):
+        self.au = alns.alns(self.au, execution_time, for_exp=for_exp)
         self.au.apply()
 
     ##-----------------------------------------------------------------------------------
@@ -313,13 +313,14 @@ class BoardAllocator:
     def nsga2(self, 
               execution_time : float, 
               process_num: int = 1, 
-              mate_pb: float = 0.7, 
-              mutation_pb: float = 0.3, 
+              mate_pb: float = 0.8, 
+              mutation_pb: float = 0.2, 
               archive_size: int = 40, 
-              offspring_size: Optional[int] = None) -> tools.ParetoFront:
+              offspring_size: Optional[int] = None, 
+              for_exp: bool = False) -> tools.ParetoFront:
         seed = self.au.dumps()
         nsga2 = NSGA2(seed, mate_pb, mutation_pb, archive_size, offspring_size)
-        hall_of_fame = nsga2.run(execution_time, process_num)
+        hall_of_fame = nsga2.run(execution_time, process_num, for_exp=for_exp)
 
         return hall_of_fame
 
