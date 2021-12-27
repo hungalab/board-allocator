@@ -52,10 +52,12 @@ static PyObject* cpp_crossing_flows(PyObject*, PyObject* args) {
         int flow_id;
         PyObject* fid = PyIter_Next(j);
         if (!PyLong_Check(fid)) {
+            Py_DECREF(fid);
             PyErr_SetString(PyExc_TypeError, "invalid flow_id");
             return NULL;
         }
         flow_id = PyLong_AsLong(fid);
+        Py_DECREF(fid);
 
         std::set<std::pair<int, int>> edges;
         PyObject* pyedges = PyIter_Next(j);
@@ -73,18 +75,28 @@ static PyObject* cpp_crossing_flows(PyObject*, PyObject* args) {
             PyObject* vo;
             while ((vo = PyIter_Next(l))) {
                 if (!PyLong_Check(vo)) {
+                    Py_DECREF(vo);
                     PyErr_SetString(PyExc_TypeError, "invalid graph");
                     return NULL;
                 }
                 e.push_back(PyLong_AsLong(vo));
+                Py_DECREF(vo);
             }
             assert(e.size() == 2);
             edges.insert(std::make_pair(e[0], e[1]));
+            Py_DECREF(l);
+            Py_DECREF(eo);
         }
+        Py_DECREF(k);
+        Py_DECREF(pyedges);
         
         Flow flow(flow_id, edges);
         flows.push_back(flow);
+
+        Py_DECREF(j);
+        Py_DECREF(ftuple);
     }
+    Py_DECREF(i);
 
     // create edge set
     PyObject* crossings = PySet_New(NULL);
@@ -127,10 +139,12 @@ static PyObject* cpp_crossings_for_a_flow(PyObject*, PyObject* args) {
     int flow_id;
     PyObject* fid = PyIter_Next(i);
     if (!PyLong_Check(fid)) {
+        Py_DECREF(fid);
         PyErr_SetString(PyExc_TypeError, "invalid flow_id");
         return NULL;
     }
     flow_id = PyLong_AsLong(fid);
+    Py_DECREF(fid);
 
     std::set<std::pair<int, int>> edges;
     PyObject* pyedges = PyIter_Next(i);
@@ -148,15 +162,23 @@ static PyObject* cpp_crossings_for_a_flow(PyObject*, PyObject* args) {
         PyObject* vo;
         while ((vo = PyIter_Next(k))) {
             if (!PyLong_Check(vo)) {
+                Py_DECREF(vo);
                 PyErr_SetString(PyExc_TypeError, "invalid graph");
                 return NULL;
             }
             e.push_back(PyLong_AsLong(vo));
+            Py_DECREF(vo);
         }
         assert(e.size() == 2);
         edges.insert(std::make_pair(e[0], e[1]));
+        Py_DECREF(k);
+        Py_DECREF(eo);
     }
     target_flow = new Flow(flow_id, edges);
+    Py_DECREF(j);
+    Py_DECREF(pyedges);
+
+    Py_DECREF(i);
 
     // make flows
     std::vector<Flow> flows;
@@ -178,10 +200,12 @@ static PyObject* cpp_crossings_for_a_flow(PyObject*, PyObject* args) {
         int flow_id;
         PyObject* fid = PyIter_Next(j);
         if (!PyLong_Check(fid)) {
+            Py_DECREF(fid);
             PyErr_SetString(PyExc_TypeError, "invalid flow_id");
             return NULL;
         }
         flow_id = PyLong_AsLong(fid);
+        Py_DECREF(fid);
 
         std::set<std::pair<int, int>> edges;
         PyObject* pyedges = PyIter_Next(j);
@@ -199,18 +223,28 @@ static PyObject* cpp_crossings_for_a_flow(PyObject*, PyObject* args) {
             PyObject* vo;
             while ((vo = PyIter_Next(l))) {
                 if (!PyLong_Check(vo)) {
+                    Py_DECREF(vo);
                     PyErr_SetString(PyExc_TypeError, "invalid graph");
                     return NULL;
                 }
                 e.push_back(PyLong_AsLong(vo));
+                Py_DECREF(vo);
             }
             assert(e.size() == 2);
             edges.insert(std::make_pair(e[0], e[1]));
+            Py_DECREF(l);
+            Py_DECREF(eo);
         }
+        Py_DECREF(k);
+        Py_DECREF(pyedges);
         
         Flow flow(flow_id, edges);
         flows.push_back(flow);
+
+        Py_DECREF(j);
+        Py_DECREF(ftuple);
     }
+    Py_DECREF(i);
 
     // create crossing flow_id set
     std::unordered_set<int> crossings;
@@ -256,10 +290,12 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
         int flow_id;
         PyObject* fid = PyIter_Next(j);
         if (!PyLong_Check(fid)) {
+            Py_DECREF(fid);
             PyErr_SetString(PyExc_TypeError, "invalid flow_id");
             return NULL;
         }
         flow_id = PyLong_AsLong(fid);
+        Py_DECREF(fid);
 
         std::set<std::pair<int, int>> edges;
         PyObject* pyedges = PyIter_Next(j);
@@ -277,18 +313,28 @@ static PyObject* cpp_slot_allocation(PyObject*, PyObject* args) {
             PyObject* vo;
             while ((vo = PyIter_Next(l))) {
                 if (!PyLong_Check(vo)) {
+                    Py_DECREF(vo);
                     PyErr_SetString(PyExc_TypeError, "invalid graph");
                     return NULL;
                 }
                 e.push_back(PyLong_AsLong(vo));
+                Py_DECREF(vo);
             }
             assert(e.size() == 2);
             edges.insert(std::make_pair(e[0], e[1]));
+            Py_DECREF(l);
+            Py_DECREF(eo);
         }
+        Py_DECREF(k);
+        Py_DECREF(pyedges);
         
         Flow flow(flow_id, edges);
         flows.push_back(flow);
+
+        Py_DECREF(j);
+        Py_DECREF(ftuple);
     }
+    Py_DECREF(i);
 
     // create graph
     std::unordered_map<int, std::unordered_set<int>> graph;
