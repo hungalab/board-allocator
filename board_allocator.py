@@ -35,12 +35,28 @@ sys.setrecursionlimit(100000)
 FIG_DIR = 'figure'
 #----------------------------------------------------------------------------------------
 def clean_dir(path: str):
+    """
+    ディレクトリの中身を消す。
+
+    Args:
+        path (str): 対象のディレクトリ
+    """
     if os.path.isdir(path):
         shutil.rmtree(path)
     os.mkdir(path)
 
 #----------------------------------------------------------------------------------------
 def parser():
+    """
+    CLI実行のためのパーサー
+
+    Returns:
+        Namespace: パーサーの実行結果
+
+    Raises:
+        FileNotFoundError: topology fileもしくはcommunication fileが存在しない
+        ValueError: 実行時間が0以下となるもしくはプロセス数が1より小さい
+    """
     parser = argparse.ArgumentParser(description='board allocator')
     parser.add_argument('-t', help='topology file', default='fic-topo-file-cross.txt')
     parser.add_argument('-c', help='communication partern (traffic file)', required=True)
@@ -70,13 +86,45 @@ def parser():
 #----------------------------------------------------------------------------------------
 JST = timezone(timedelta(hours=+9))
 def now():
+    """
+    現在時刻(JST)の文字列生成
+
+    Returns:
+        str: 時刻 (2022年1月25日 15:39:17だと"2022/01/25 15:39:17 (UTC+09:00)"を生成)
+
+    """
     return datetime.now(JST).strftime('%Y/%m/%d %H:%M:%S (%Z)')
 
+#----------------------------------------------------------------------------------------
 def default_filename():
+    """
+    デフォルトファイル名の文字列生成
+
+    Returns:
+        str: 時刻 (2021年12月27日 21:53:31.926069だと"2021-12-27-2153-31926069"を生成)
+
+    """
     return datetime.now(JST).strftime('%Y-%m-%d-%H%M-%S%f')
 
 #----------------------------------------------------------------------------------------
 class AppVirtualizer:
+    """
+    アプリケーションの仮想化機能
+
+    Attributes:
+        label2vNode_id (dict[int, int]): 
+            topology fileのラベルからBoardAllocatorのvNode_idへの辞書
+        vNode_id2label (dict[int, int]):
+            BoardAllocatorのvNode_idからtopology fileのラベルへの辞書
+        flow_id2label (dict[int, int]):
+            communication fileのラベルからBoardAllocatorのvNode_idへの辞書
+        flow_id2label (dict[int, int]):
+            BoardAllocatorのvNode_idからcommunication fileのラベルへの辞書
+        communicationFile (str): communication fileの絶対パス
+        date (str): アプリケーションが追加された時刻
+        color (str): 可視化の際の色
+
+    """
     def __init__(self, 
                  label2vNode_id: dict[int, int], 
                  label2flow_id: dict[int, int], 
@@ -92,6 +140,11 @@ class AppVirtualizer:
 
 #----------------------------------------------------------------------------------------
 class BoardAllocator:
+    """
+    アプリケーションアロケーター
+
+    
+    """
     def __init__(self, topologyFile: str, multi_ejection: bool = False):
         # define variable
         ## Allocator Unit
