@@ -473,23 +473,24 @@ class AllocatorUnit:
                for s in slot_id_set}
 
         desc_slot_id_list = sorted(slot_id_set, reverse=True)
-        for slot_id in desc_slot_id_list:
-            flow_id_list = slot_id2flow_id_list[slot_id]
-            for flow_id in flow_id_list:
-                flow_graph = self.flow_dict[flow_id].flow_graph
-                switches_in_flow = set(flow_graph.nodes) - self.core_nodes
-                for s in [s for s in desc_slot_id_list if s >= slot_id]:
-                    if s > slot_id:
-                        switches_whose_slots_are_s \
-                            = {switch for switch, slots in switch2slots.items()
-                               if slots == s + 1}
-                        if switches_in_flow & switches_whose_slots_are_s != set():
+        for i, set_slot_id in enumerate(desc_slot_id_list):
+            for slot_id in desc_slot_id_list[i:]:
+                flow_id_list = slot_id2flow_id_list[slot_id]
+                for flow_id in flow_id_list:
+                    flow_graph = self.flow_dict[flow_id].flow_graph
+                    switches_in_flow = set(flow_graph.nodes) - self.core_nodes
+                    for s in [s for s in desc_slot_id_list if s >= set_slot_id]:
+                        if s > slot_id:
+                            switches_whose_slots_are_s \
+                                = {switch for switch, slots in switch2slots.items()
+                                   if slots == s + 1}
+                            if switches_in_flow & switches_whose_slots_are_s != set():
+                                for sw in switches_in_flow:
+                                    switch2slots[sw] = s + 1
+                                break
+                        else:
                             for sw in switches_in_flow:
                                 switch2slots[sw] = s + 1
-                            break
-                    else:
-                        for sw in switches_in_flow:
-                            switch2slots[sw] = s + 1
         
         return sum(switch2slots.values()) / len(switch2slots)
     

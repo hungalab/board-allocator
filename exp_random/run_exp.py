@@ -20,7 +20,7 @@ RESULT_DIR = os.path.join(SCRIPT_DIR_NAME,'result')
 #----------------------------------------------------------------------------------------
 def parser():
     parser = argparse.ArgumentParser(description='run_exp_alltoall')
-    parser.add_argument('-t', help='# of topologies', nargs='+', default=TOPO_NUM, type=int)
+    parser.add_argument('-t', help='# of topologies', default=TOPO_NUM, type=int)
     parser.add_argument('-m', help='method', nargs='+', default=METHODS, type=str)
     parser.add_argument('-e', help='ejection type', nargs='+', default=EJECTION_TYPES)
     parser.add_argument('-a', help='apps', nargs='+', default=APPS)

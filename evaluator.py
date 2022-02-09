@@ -26,7 +26,7 @@ def avg_hops(ind: AllocatorUnit) -> float:
 #----------------------------------------------------------------------------------------
 class Evaluator:
     __funcs: list[tuple[str, Callable[[AllocatorUnit], float | int], float]] = [
-        ('avg # of slots', avg_slots, -1.0), 
+        ('# of slots', max_slots, -1.0), 
         ("# of flows' edges", edges, -1.0),
         ('# of routed bords', boards, -1.0)
     ]
