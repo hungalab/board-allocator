@@ -2,7 +2,7 @@ from cpp_modules import crossing_flows, crossings_for_a_flow, slot_allocation
 
 import networkx as nx
 
-flows = [(0, {(0, 1), (0, 2)}), (1, {(0, 1), (1, 2)}), (2, {(1, 2)}), (3, {(0, 1)}), (0, {(1, 2)}), (4, {(3, 4)})]
+flows = [(0, {(0, 1), (0, 2)}), (1, {(0, 1), (1, 2)}), (2, {(1, 2)}), (3, {(0, 1)}), (0, {(1, 2)}), (4, {(3, 4), (0, 1)})]
 
 print("===Checking crossing_flows===")
 correct = {(0, 1), (0, 3), (1, 2), (1, 3), (1, 0), (2, 0)}
@@ -38,6 +38,7 @@ graph.add_edges_from(edges)
 correct = nx.coloring.greedy_color(graph, strategy='largest_first')
 
 result = slot_allocation(flows)
+print(result)
 
 if (result == correct):
     print("Successed!")

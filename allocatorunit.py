@@ -291,6 +291,14 @@ class AllocatorUnit:
                and (self.topology.edges[pair.path[-1], dst]["multi_ejection"]):
                 dst = pair.path[-1]
             assert (pair.path[0] == src) and (pair.path[-1] == dst)
+            for ni, nj in zip(pair.path[:-1], pair.path[1:]):
+                assert self.flow_dict[pair.flow_id].flow_graph.has_edge(ni, nj)
+        
+        # check for slot consistency
+        for i, fi in self.flow_dict.items():
+            for j, fj in self.flow_dict.items():
+                if (i < j) and (fi.slot_id == fj.slot_id):
+                    assert nx.intersection(fi.flow_graph, fj.flow_graph).number_of_edges() == 0
         
         return True
     
