@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip
 
 RUN pip install deap==1.3.1
-RUN pip install matplotlib==3.4.2
+RUN pip install matplotlib==3.7.1
 RUN pip install networkx==2.6.2
 RUN pip install pycairo==1.16.2
 RUN pip install PyGObject==3.36.0
