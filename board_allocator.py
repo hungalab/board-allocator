@@ -208,6 +208,18 @@ class BoardAllocator:
                               for p in comm_tmp if p[2] == flow_id]
                       for flow_id in label2flow_id.values()}
         pair_list = [pair for pairs in flow2pairs.values() for pair in pairs]
+
+        def show_pair(pair: Pair):
+            print("pair_id", pair.pair_id)
+            print("src", pair.src)
+            print("dst", pair.dst)
+            print("flow_id", pair.flow_id)
+            print("src_vNode", pair.src_vNode.rNode_id)
+            print("dst_vNode", pair.dst_vNode.rNode_id)
+            print("owner", pair.owner)
+            print("path", pair.path)
+            print("allocating", pair.allocating)
+
         
         # make Flows
         flow_list = [Flow(flow_id, pairs) for flow_id, pairs in flow2pairs.items()]
@@ -226,6 +238,10 @@ class BoardAllocator:
             pair.src_vNode = vNode_dict[pair.src]
             pair.dst_vNode = vNode_dict[pair.dst]
             pair.owner = flow_dict[pair.flow_id]
+
+        # print("pair_list")
+        # for pair in pair_list:
+        #     show_pair(pair)
 
         # make App
         app = App(self.__generate_app_id(), vNode_list, flow_list, pair_list)
@@ -427,6 +443,32 @@ class BoardAllocator:
             print("There are no items that match the condition.")
         else:
             print(flows_book.stream)
+    
+    def show_real_flows(self):
+        print("src_id, dest_id, flow_id")
+        app = self.au.app_dict[0]
+        for pair in app.pair_list:
+            src_board_id = pair.src_vNode.rNode_id
+            dst_board_id = pair.dst_vNode.rNode_id
+            old_src_board_id = pair.src
+            old_dst_board_id = pair.dst
+            flow_id = pair.flow_id
+            print(f"src: {src_board_id}, dst: {dst_board_id}, flow_id: {flow_id}")
+            print(f"old_src: {old_src_board_id}, old_dst: {old_dst_board_id}, flow_id: {flow_id}")
+    
+    def write_real_flows(self, flow_file):
+        for app_id, app in sorted(self.au.app_dict.items(), key=lambda item: item[0]):
+            # flow_file_name: str = flow_file + str(app_id)
+            with open(flow_file, "w") as f:
+                for pair in app.pair_list:
+                    src_board_id = pair.src_vNode.rNode_id
+                    dst_board_id = pair.dst_vNode.rNode_id
+                    old_src_board_id = pair.src
+                    old_dst_board_id = pair.dst
+                    flow_id = pair.flow_id
+                    f.write(f"{src_board_id} {dst_board_id} {flow_id}\n")
+                    print(f"src: {old_src_board_id} -> {src_board_id}, dst: {old_dst_board_id} -> {dst_board_id}, flow_id: {flow_id}")
+            print(f"[INFO] Write the real flow in {flow_file}")
     
     ##-----------------------------------------------------------------------------------
     def print_result(self, fully_desplay: bool = False):
