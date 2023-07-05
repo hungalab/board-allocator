@@ -3,6 +3,61 @@ board-allocator is a mapping tool to optimize the application mapping with the m
 
 This repository is based on [circuit-switch-table](https://github.com/KoibuchiLab/circuit-switch-table) and [topology-generator](https://github.com/KoibuchiLab/topology-generator) proposed in [2].
 
+## Setup
+This tool needs 
+- Python3 (We recommend Python3.8~) 
+- some Python libraries
+- GCC which can compile C++11 programs with default settings.
+We show the setup flow on `Ubuntu 22.04` and `CentOS 7` by using the `venv` module of Python3 and, also show the setup flow on a Docker container.
+On other OS or versions you can use this tool.
+
+### 1. Ubuntu 22.04
+```sh
+$ sudo apt update
+$ sudo apt install git gcc libgirepository1.0-dev libcairo2-dev pkg-config python3-gi python3-gi-cairo python3-dev python3-venv gir1.2-gtk-4.0
+
+$ python3 -m venv <venv_path>
+$ source <venv_path>/bin/activate
+$ python3 -m pip install -U pip setuptools
+$ python3 -m pip install deap matplotlib networkx pycairo PyGObject
+$ cd <this_repo_path>
+$ python3 setup.py install
+```
+
+### 2. CentOS 7
+```sh
+$ sudo yum install -y epel-release
+$ sudo yum install -y centos-release-scl
+$ sudo yum group install -y "Development Tools"
+$ sudo yum install -y devtoolset-7
+$ sudo yum install -y rh-python38 rh-python38-python-devel 
+$ sudo scl enable devtoolset-7 bash
+# Check GCC version 
+$ gcc --version
+gcc (GCC) 7.3.1 20180303 (Red Hat 7.3.1-5)
+Copyright (C) 2017 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+$ sudo scl enable rh-python38 bash
+# Check Python3 version
+$ python3 -V
+Python 3.8.13
+
+$ sudo yum install -y pkg-config gtk3-devel gobject-introspection-devel
+
+$ python3 -m venv <venv_path>
+$ source <venv_path>/bin/activate
+$ python3 -m pip install -U pip setuptools
+$ python3 -m pip install deap matplotlib networkx pycairo PyGObject
+$ cd <this_repo_path>
+$ python3 setup.py install
+```
+
+### Docker 
+Please read [docker.md](https://github.com/hungalab/board-allocator/blob/main/docker/docker.md) in `/docker` directory.
+
+
 ## Artifact Evaluation
 This tool experiment result is reported in [1] and [exp_random](https://github.com/hungalab/board-allocator/tree/main/exp_random) and [exp_alltoall](https://github.com/hungalab/board-allocator/tree/main/exp_alltoall) directories can help artifact evaluations of [1].
 
