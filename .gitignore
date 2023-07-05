@@ -25,4 +25,6 @@ test*.py
 !exp_random/a2a_16.txt
 !exp_random/fork_16.txt
 
+!examples/*.txt
+examples/output/*
 __pycache__
