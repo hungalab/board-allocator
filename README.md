@@ -48,5 +48,6 @@ DOI: 10.1587/transinf.2018EDP7225
  
 [3] Musha, K., Kudoh, T., Amano, H, "Deep Learning on High Performance FPGA Switching Boards: Flow-in-Cloud", Applied Reconfigurable Computing. Architectures, Tools, and Applications. ARC 2018. \
 DOI: https://doi.org/10.1007/978-3-319-78890-6_4
+
 [4] T. Inage, K. Hironaka, K. Iizuka, K. Ito, Y. Fukushima, M. Namiki, and H. Amano, “M-KUBOS/PYNQ Cluster for multi-access edge computing,” in 2021 Ninth International Symposium on Computing and Networking (CANDAR), 2021, pp. 1–8.\
 DOI: 10.1109/CANDAR53791.2021.00020
