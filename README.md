@@ -11,7 +11,7 @@ This tool needs
 We show the setup flow on `Ubuntu 22.04` and `CentOS 7` by using the `venv` module of Python3 and, also show the setup flow on a Docker container.
 On other OS or versions you can use this tool.
 
-### 1. Ubuntu 22.04
+### Ubuntu 22.04
 ```sh
 $ sudo apt update
 $ sudo apt install git gcc libgirepository1.0-dev libcairo2-dev pkg-config python3-gi python3-gi-cairo python3-dev python3-venv gir1.2-gtk-4.0
@@ -24,7 +24,7 @@ $ cd <this_repo_path>
 $ python3 setup.py install
 ```
 
-### 2. CentOS 7
+### CentOS 7
 ```sh
 $ sudo yum install -y epel-release
 $ sudo yum install -y centos-release-scl
