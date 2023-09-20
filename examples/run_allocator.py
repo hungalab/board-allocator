@@ -2,9 +2,10 @@ import argparse
 import os
 import os.path
 import sys
-sys.path.append(os.pardir)
+import json
 from datetime import datetime, timedelta, timezone
 
+sys.path.append(os.pardir)
 from board_allocator import BoardAllocator
 import cstgen
 
@@ -58,6 +59,8 @@ if __name__ == '__main__':
     print(f"methods: {methods}")
     print(f"ejection type: {ejections}")
 
+    RESULT_DIR = os.path.join(os.getcwd(), "result")
+
     # make directories
     if not os.path.isdir(RESULT_DIR):
         os.mkdir(RESULT_DIR)
@@ -87,10 +90,12 @@ if __name__ == '__main__':
 
             with open(result_filename, mode='a') as f:
                 f.write(result)
-            print(f"[INFO] Finish optimization [{method}, {ejection}]\n")
+            print(f"[INFO] Finish optimization [{method}, {ejection}]")
 
             cst = cstgen.cstgen(topology_file, real_flow_file, 0, False)
             cst.main()
-            cst.table("m2fic00") #return table (OrderedDict) corresponding board name
+            print("table list of m2fic00")
+            table_dict = cst.table("m2fic00") #Return table (OrderedDict) corresponding board name
+            print(json.dumps(table_dict, indent=2)) 
     
     print(f"[INFO] Finish all optimizations and result is in {result_filename}")

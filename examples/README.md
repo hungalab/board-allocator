@@ -20,12 +20,26 @@ This script executes a python script.
 `-a` arg is the application flow file which represents the flow of an application.
 In this example, we use FFT on 4boards as the target application.\
 `-e` arg is the type of ejection refered in [3] and usually we specify `single` option.\
-`--time` arg means the time for optimization and in this command we can search 60 minutes.
+`--time` arg means the time for optimization and in this command we can search 60 seconds.
 
 ### Output of this example
 
 This example create `/result` and `/output` directory.
 In `/result` directory, there is a log file of optimization flow and `/output` directory contains the table files of 24 FiC-SW boards(board0.json ~ board23.json) which can be configured from `ficmgr`.
+
+## Appendix
+
+### Create single executable file
+For the environment which doesn't have Python, we can create a single executable binary of this example.
+We need `PyInstaller`
+```
+$ python3 -m pip install pyinstaller
+```
+after we install this library, run the script
+```
+$ python3 create_binary.py
+``` 
+The executable file is saved as `./dist/run_allocator`. and use the same way as `run_allocator.py`
 
 ## References
 [1] K. Ito, R. Yasudo and H. Amano, "Optimizing Application Mapping for Multi-FPGA Systems with Multi-ejection STDM Switches," 2022 32nd International Conference on Field-Programmable Logic and Applications (FPL), Belfast, United Kingdom, 2022, pp. 143-147 \
