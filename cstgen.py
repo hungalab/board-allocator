@@ -539,6 +539,26 @@ class cstgen:
 
         #write log if it is successful
         self.writeLog(self.writeLog_str)
+    
+
+    def get_routing(self)-> dict:
+        routing: dict = {}
+        for current_pair in self.pairs:
+            pair_id = current_pair.pair_id
+            routing[pair_id] = []
+
+            for channel in range(1, len(current_pair.channels)):
+                if channel == 1:
+                    target_board = current_pair.src
+                    routing[pair_id].append(target_board)
+                elif channel == len(current_pair.channels) - 1:
+                    target_board = current_pair.dst
+                    routing[pair_id].append(target_board)
+                else:
+                    target_board = current_pair.channels[channel] // self.ports_p_sw
+                    routing[pair_id].append(target_board)
+        return routing
+
 
     ##---------------------------------------------------------
     def main(self):
