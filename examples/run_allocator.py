@@ -52,7 +52,41 @@ def default_filename():
     JST = timezone(timedelta(hours=+9))
     return datetime.now(JST).strftime('%Y-%m-%d-%H%M-%S%f')
 
-if __name__ == '__main__':
+def show_routing():
+    topology_file: str = "../fic-topo-file-cross.txt"
+    app_flow_file: str = "app_flow2.txt"
+    ejection: str = "single"
+    is_multi_ejection: bool = (ejection == 'multi')
+
+    allocator = BoardAllocator(topology_file, is_multi_ejection)
+
+    # Check AllocatorUnit
+    au = allocator.au
+    flow_dict = au.flow_dict
+    pair_dict = au.pair_dict
+    shortest_path_table = au.st_path_table
+    src = 1
+    dst = 3
+    path_list = shortest_path_table[src][dst]
+    for path in path_list:
+        print(path)
+        """
+        This shows like following.
+        (1, 25, 24, 27, 3) -> 25: switch of board1, 24: switch of board0, 27: switch of board3.
+        (1, 25, 26, 27, 3) -> 25: switch of board1, 26: switch of board2, 27: switch of board3.
+
+        """
+
+    # Check cstgen
+    cst = cstgen.cstgen(topology_file, app_flow_file, 0, False)
+    cst.main()
+    cst_log = cst.writeLog_str
+    print(cst_log)
+    routing_dict: dict = cst.get_routing()
+    print(routing_dict)
+
+
+def main():
     topology_file, app_flow_file, methods, ejections, exp_time= parser()
     print(f"topology: {topology_file}")
     print(f"app flow: {app_flow_file}")
@@ -99,3 +133,7 @@ if __name__ == '__main__':
             print(json.dumps(table_dict, indent=2)) 
     
     print(f"[INFO] Finish all optimizations and result is in {result_filename}")
+
+if __name__ == '__main__':
+    # main()
+    show_routing()
